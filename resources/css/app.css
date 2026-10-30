@@ -4,12 +4,51 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../../app/**/*.php';
 
+/*
+| Identité Uptime Africa : bleu nuit (structure), bleu électrique (action), blanc (contenu).
+| Vert / ambre / rouge réservés aux statuts.
+*/
 @theme {
-    --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    --color-brand-50: #ecfdf5;
-    --color-brand-100: #d1fae5;
-    --color-brand-600: #059669;
-    --color-brand-700: #047857;
-    --color-brand-900: #064e3b;
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+    --color-night-950: #050d1f;
+    --color-night-900: #0a1733;
+    --color-night-800: #102246;
+    --color-night-700: #1a3160;
+    --color-night-600: #2a4478;
+
+    --color-electric-50: #eef4ff;
+    --color-electric-100: #dbe7ff;
+    --color-electric-200: #b9d0ff;
+    --color-electric-400: #5b8cff;
+    --color-electric-500: #2f6bff;
+    --color-electric-600: #1a55f0;
+    --color-electric-700: #1443c4;
+}
+
+@utility card { @apply rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(10,23,51,0.04)]; }
+@utility card-header { @apply flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4; }
+@utility card-title { @apply text-sm font-semibold text-night-900; }
+
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-electric-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primary { @apply btn bg-electric-500 text-white shadow-sm hover:bg-electric-600; }
+@utility btn-secondary { @apply btn border border-slate-300 bg-white text-night-900 hover:bg-slate-50; }
+@utility btn-ghost { @apply btn text-slate-600 hover:bg-slate-100 hover:text-night-900; }
+@utility btn-danger { @apply btn border border-rose-200 bg-white text-rose-700 hover:bg-rose-50; }
+@utility btn-sm { @apply px-3 py-1.5 text-xs; }
+
+@utility label { @apply mb-1.5 block text-sm font-medium text-night-900; }
+@utility input { @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-night-900 placeholder:text-slate-400 focus:border-electric-500 focus:ring-2 focus:ring-electric-100 focus:outline-none disabled:bg-slate-50 disabled:text-slate-500; }
+@utility input-error { @apply border-rose-400 focus:border-rose-500 focus:ring-rose-100; }
+@utility hint { @apply mt-1.5 text-xs text-slate-500; }
+@utility error { @apply mt-1.5 text-xs font-medium text-rose-600; }
+@utility link { @apply font-medium text-electric-600 hover:text-electric-700 hover:underline; }
+
+@utility data-table {
+    @apply min-w-full divide-y divide-slate-100 text-sm;
+    & th { @apply bg-slate-50 px-4 py-3 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase; }
+    & td { @apply px-4 py-3 align-middle text-slate-700; }
+    & tbody tr:hover { @apply bg-electric-50/40; }
 }

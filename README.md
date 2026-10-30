@@ -3,10 +3,10 @@
 Plateforme SaaS de surveillance de sites web pour les agences web, freelances et entreprises
 d'Afrique francophone. Interface en français, montants en FCFA (XOF).
 
-> **Statut : phase 1 (fondations).** Le schéma complet de base de données, les rôles et permissions, l'isolation multi-agences,
-> la gestion des erreurs et la journalisation sont en place. L'authentification, la gestion des
-> clients/sites et le moteur de contrôles arrivent dans les phases suivantes
-> (voir [docs/architecture.md](docs/architecture.md)).
+> **Statut : phase 2 (interface).** Base de données, rôles et permissions, isolation multi-agences,
+> connexion / inscription et interface complète (8 pages) sont en place. Le moteur de contrôles
+> et l'envoi des alertes arrivent à la phase suivante : d'ici là, les pages de mesures affichent
+> des états vides explicites (voir [docs/interface.md](docs/interface.md)).
 
 ## Stack
 
@@ -37,7 +37,9 @@ powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 powershell -ExecutionPolicy Bypass -File scripts\start.ps1
 ```
 
-Ouvrir <http://127.0.0.1:8000>.
+Ouvrir <http://127.0.0.1:8000>, puis « Créer un compte » pour créer votre agence.
+Pour explorer avec des données de test : `php artisan db:seed --class=TestDataSeeder`
+(les identifiants générés s'affichent dans le terminal).
 
 `start.ps1` lance dans la même fenêtre : le serveur web, la file d'attente, le planificateur
 (`schedule:work`) et Vite (rechargement à chaud). `Ctrl+C` arrête tout.
@@ -99,6 +101,7 @@ Détail de chaque variable : [docs/configuration.md](docs/configuration.md).
 
 - [Architecture](docs/architecture.md)
 - [Base de données](docs/base-de-donnees.md)
+- [Interface et routes](docs/interface.md)
 - [Configuration](docs/configuration.md)
 - [Erreurs et journalisation](docs/erreurs-et-journaux.md)
 - [Sécurité](docs/securite.md)

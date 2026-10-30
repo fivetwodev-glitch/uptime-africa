@@ -24,7 +24,11 @@ class AuditLog extends Model
         $user = auth()->user();
 
         return static::create([
-            'agency_id' => $subject?->getAttribute('agency_id') ?? $user?->agency_id,
+            'agency_id' => match (true) {
+                $subject instanceof Agency => $subject->getKey(),
+                $subject !== null && array_key_exists('agency_id', $subject->getAttributes()) => $subject->getAttribute('agency_id'),
+                default => $user?->agency_id,
+            },
             'user_id' => $user?->id,
             'action' => $action,
             'subject_type' => $subject ? $subject::class : null,

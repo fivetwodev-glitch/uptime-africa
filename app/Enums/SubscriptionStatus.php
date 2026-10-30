@@ -15,4 +15,15 @@ enum SubscriptionStatus: string
     {
         return in_array($this, [self::Trialing, self::Active, self::PastDue], true);
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Trialing => 'Période d\'essai',
+            self::Active => 'Actif',
+            self::PastDue => 'Paiement en retard',
+            self::Cancelled => 'Annulé',
+            self::Expired => 'Expiré',
+        };
+    }
 }

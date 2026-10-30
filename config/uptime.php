@@ -10,6 +10,9 @@ return [
 
     'timezone_display' => env('UPTIME_DISPLAY_TIMEZONE', 'Africa/Abidjan'),
 
+    // Adresse affichée pour les demandes de changement d'offre. Vide = non affichée.
+    'support_email' => env('UPTIME_SUPPORT_EMAIL'),
+
     'monitoring' => [
         // Intervalle minimal autorisé entre deux contrôles d'un même site (minutes).
         'min_interval_minutes' => (int) env('MONITOR_MIN_INTERVAL_MINUTES', 5),

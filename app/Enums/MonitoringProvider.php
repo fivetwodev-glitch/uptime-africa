@@ -14,4 +14,14 @@ enum MonitoringProvider: string
     {
         return $this !== self::Internal;
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Internal => 'Moteur Uptime Africa',
+            self::UptimeRobot => 'UptimeRobot',
+            self::BetterStack => 'Better Stack',
+            self::Other => 'Autre fournisseur',
+        };
+    }
 }

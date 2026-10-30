@@ -2,12 +2,14 @@
 
 use App\Exceptions\UptimeException;
 use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\EnsureAgencyUser;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetTenantContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -22,7 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(AssignRequestId::class);
         $middleware->append(SecurityHeaders::class);
         $middleware->web(append: [SetTenantContext::class]);
-        $middleware->alias(['tenant' => SetTenantContext::class]);
+        // L'agence doit être connue AVANT la résolution des modèles dans les routes,
+        // sinon un identifiant d'une autre agence serait résolu sans filtre.
+        $middleware->prependToPriorityList(SubstituteBindings::class, SetTenantContext::class);
+        $middleware->alias(['tenant' => SetTenantContext::class, 'agency' => EnsureAgencyUser::class]);
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(fn () => route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Gestion centralisée des erreurs.

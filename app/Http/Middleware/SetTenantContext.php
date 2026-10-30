@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Support\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Context;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,6 +20,13 @@ class SetTenantContext
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+
+        if ($user && ! $user->is_active) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+
+            return redirect()->route('login')->withErrors(['email' => 'Ce compte est désactivé.']);
+        }
 
         if ($user && ! $user->isSuperAdmin()) {
             if ($user->agency_id === null || ! $user->agency?->is_active) {
