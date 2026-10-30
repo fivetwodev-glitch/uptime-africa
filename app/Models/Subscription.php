@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BillingPeriod;
 use App\Enums\SubscriptionStatus;
 use App\Models\Concerns\BelongsToAgency;
 use Illuminate\Database\Eloquent\Model;
@@ -11,14 +12,20 @@ class Subscription extends Model
 {
     use BelongsToAgency;
 
-    protected $fillable = ['plan_id', 'status', 'starts_at', 'ends_at', 'payment_reference'];
+    protected $fillable = [
+        'plan_id', 'status', 'billing_period', 'price_xof', 'starts_at', 'ends_at',
+        'trial_ends_at', 'cancelled_at', 'payment_provider', 'payment_reference',
+    ];
 
     protected function casts(): array
     {
         return [
             'status' => SubscriptionStatus::class,
+            'billing_period' => BillingPeriod::class,
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
+            'trial_ends_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 

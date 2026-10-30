@@ -2,20 +2,21 @@
 
 namespace App\Enums;
 
+/** État constaté par le dernier contrôle. */
 enum SiteStatus: string
 {
-    case Pending = 'pending';
+    case Unknown = 'unknown';
     case Up = 'up';
     case Down = 'down';
-    case Paused = 'paused';
+    case Degraded = 'degraded';
 
     public function label(): string
     {
         return match ($this) {
-            self::Pending => 'En attente du premier contrôle',
+            self::Unknown => 'Inconnu',
             self::Up => 'En ligne',
             self::Down => 'Hors ligne',
-            self::Paused => 'En pause',
+            self::Degraded => 'Dégradé',
         };
     }
 }

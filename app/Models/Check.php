@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CheckErrorType;
+use App\Enums\MonitoringProvider;
 use App\Models\Concerns\BelongsToAgency;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +16,7 @@ class Check extends Model
 
     protected $fillable = [
         'site_id', 'agency_id', 'checked_at', 'is_up', 'http_status',
-        'response_time_ms', 'error_type', 'error_message',
+        'response_time_ms', 'error_type', 'error_message', 'provider',
     ];
 
     protected function casts(): array
@@ -24,6 +25,7 @@ class Check extends Model
             'checked_at' => 'datetime',
             'is_up' => 'boolean',
             'error_type' => CheckErrorType::class,
+            'provider' => MonitoringProvider::class,
         ];
     }
 

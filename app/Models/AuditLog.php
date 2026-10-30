@@ -9,7 +9,7 @@ class AuditLog extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $fillable = ['agency_id', 'user_id', 'action', 'subject_type', 'subject_id', 'metadata', 'ip_address', 'request_id'];
+    protected $fillable = ['agency_id', 'user_id', 'action', 'subject_type', 'subject_id', 'metadata', 'ip_address', 'user_agent', 'request_id'];
 
     protected function casts(): array
     {
@@ -31,6 +31,7 @@ class AuditLog extends Model
             'subject_id' => $subject ? (string) $subject->getKey() : null,
             'metadata' => $metadata ?: null,
             'ip_address' => request()?->ip(),
+            'user_agent' => substr((string) request()?->userAgent(), 0, 500) ?: null,
             'request_id' => Context::get('request_id'),
         ]);
     }

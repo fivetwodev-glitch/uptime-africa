@@ -3,7 +3,7 @@
 Plateforme SaaS de surveillance de sites web pour les agences web, freelances et entreprises
 d'Afrique francophone. Interface en français, montants en FCFA (XOF).
 
-> **Statut : phase 1 (fondations).** Le schéma de base de données, l'isolation multi-agences,
+> **Statut : phase 1 (fondations).** Le schéma complet de base de données, les rôles et permissions, l'isolation multi-agences,
 > la gestion des erreurs et la journalisation sont en place. L'authentification, la gestion des
 > clients/sites et le moteur de contrôles arrivent dans les phases suivantes
 > (voir [docs/architecture.md](docs/architecture.md)).
@@ -53,6 +53,8 @@ Linux / macOS / WSL : `./scripts/install.sh` puis `./scripts/start.sh`.
 | Corriger le style | `.\vendor\bin\pint` |
 | Réinitialiser la base locale | `php artisan migrate:fresh` |
 | Créer l'administrateur général | renseigner `SUPER_ADMIN_EMAIL` dans `.env`, puis `php artisan db:seed` |
+| Charger les données de test | `php artisan db:seed --class=TestDataSeeder` |
+| Supprimer les données de test | `php artisan uptime:purge-test-data` |
 | Lire les logs | `storage\logs\laravel-AAAA-MM-JJ.log` |
 | Vérifier le planificateur | `php artisan schedule:list` |
 
@@ -96,6 +98,7 @@ Détail de chaque variable : [docs/configuration.md](docs/configuration.md).
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [Base de données](docs/base-de-donnees.md)
 - [Configuration](docs/configuration.md)
 - [Erreurs et journalisation](docs/erreurs-et-journaux.md)
 - [Sécurité](docs/securite.md)

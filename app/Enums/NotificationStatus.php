@@ -2,9 +2,10 @@
 
 namespace App\Enums;
 
-enum AlertStatus: string
+enum NotificationStatus: string
 {
     case Queued = 'queued';
     case Sent = 'sent';
     case Failed = 'failed';
+    case Skipped = 'skipped';
 }

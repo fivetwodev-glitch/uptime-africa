@@ -46,3 +46,50 @@ jobs:
 
       - name: Tests
         run: php artisan test
+
+  mariadb:
+    runs-on: ubuntu-latest
+    name: Tests MariaDB (comme Hostinger)
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: uptime_test
+          MARIADB_USER: uptime
+          MARIADB_PASSWORD: uptime
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+
+    env:
+      DB_CONNECTION: mariadb
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: uptime_test
+      DB_USERNAME: uptime
+      DB_PASSWORD: uptime
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, mbstring, zip, pdo, pdo_mysql, intl
+          coverage: none
+
+      - name: Dépendances PHP
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Environnement
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Tests (base MariaDB)
+        run: vendor/bin/phpunit

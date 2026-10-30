@@ -2,20 +2,24 @@
 
 namespace Database\Seeders;
 
-use App\Enums\Role;
+use App\Enums\RoleName;
 use App\Models\User;
+use App\Support\PermissionRegistry;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 /**
- * Ne crée AUCUNE donnée métier fictive.
- * Seul l'administrateur général est créé si SUPER_ADMIN_EMAIL est défini.
- * Les offres d'abonnement seront saisies par l'administrateur (phase 7).
+ * Données de RÉFÉRENCE uniquement (aucune donnée métier fictive) :
+ * - rôles et permissions système ;
+ * - administrateur général si SUPER_ADMIN_EMAIL est défini.
+ * Données de démonstration : php artisan db:seed --class=TestDataSeeder
  */
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        PermissionRegistry::sync();
+
         $email = config('uptime.super_admin.email');
 
         if (! $email) {
@@ -34,8 +38,7 @@ class DatabaseSeeder extends Seeder
             $this->command?->info("Administrateur créé : {$email} / mot de passe provisoire : {$password}");
         }
 
-        $user->role = Role::SuperAdmin;
         $user->agency_id = null;
-        $user->save();
+        $user->assignRole(RoleName::SuperAdmin)->save();
     }
 }

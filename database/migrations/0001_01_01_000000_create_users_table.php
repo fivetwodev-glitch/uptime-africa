@@ -15,13 +15,14 @@ return new class extends Migration
             $table->id();
             // Null uniquement pour l'administrateur général.
             $table->foreignUlid('agency_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->string('role', 20)->default('member');
+            $table->foreignId('role_id')->constrained()->restrictOnDelete();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamp('last_login_at')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
 

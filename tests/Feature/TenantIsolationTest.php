@@ -116,6 +116,6 @@ class TenantIsolationTest extends TestCase
         // Mode strict : toute tentative d'assignation de rôle ou d'agence lève une exception.
         $this->expectException(MassAssignmentException::class);
 
-        new User(['name' => 'X', 'email' => 'x@example.com', 'password' => 'secret123', 'role' => 'super_admin', 'agency_id' => $this->agencyB->id]);
+        new User(['name' => 'X', 'email' => 'x@example.com', 'password' => 'secret123', 'role_id' => 1, 'agency_id' => $this->agencyB->id]);
     }
 }

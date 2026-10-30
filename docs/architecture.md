@@ -17,19 +17,7 @@ Document de référence complet : « Uptime Africa — Architecture technique v1
 
 ## Modèle de données
 
-```text
-agencies ─┬─ users (agency_id null = administrateur général)
-          ├─ subscriptions ── plans (prix en FCFA, quotas)
-          ├─ notification_channels (email, whatsapp)
-          ├─ audit_logs
-          └─ clients ── sites ─┬─ checks (code HTTP, temps de réponse, erreur)
-                               ├─ incidents ── alerts (envois par canal)
-                               └─ daily_stats (uptime %, temps moyen)
-```
-
-- Identifiants ULID (non devinables) pour agences, clients, sites, incidents.
-- Suppression d'une agence = suppression en cascade de toutes ses données.
-- `checks.agency_id` est dupliqué volontairement pour filtrer sans jointure.
+Voir [base-de-donnees.md](base-de-donnees.md) : schéma, contraintes, index, migrations.
 
 ## Isolation multi-agences
 
@@ -46,7 +34,7 @@ Tests : `tests/Feature/TenantIsolationTest.php`.
 | Phase | Contenu | Statut |
 | --- | --- | --- |
 | 0 | Preuve Hostinger (cron 1 min, curl sortant, SMTP) | À faire sur le serveur |
-| 1 | Fondations : schéma, multi-agences, erreurs, logs, CI | **Fait (initialisation)** — reste : authentification |
+| 1 | Fondations : schéma complet, rôles/permissions, multi-agences, erreurs, logs, CI | **Fait** — reste : authentification |
 | 2 | Clients & sites, validations, anti-SSRF, quotas | À faire |
 | 3 | Moteur de contrôles concurrent | À faire |
 | 4 | Incidents + alertes email | À faire |

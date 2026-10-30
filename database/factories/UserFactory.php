@@ -2,8 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Enums\Role;
+use App\Enums\RoleName;
 use App\Models\Agency;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +34,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'agency_id' => Agency::factory(),
-            'role' => Role::Owner,
+            'role_id' => fn () => Role::findBySlug(RoleName::Owner)->id,
         ];
     }
 
@@ -42,7 +43,12 @@ class UserFactory extends Factory
      */
     public function superAdmin(): static
     {
-        return $this->state(['agency_id' => null, 'role' => Role::SuperAdmin]);
+        return $this->state(['agency_id' => null, 'role_id' => Role::findBySlug(RoleName::SuperAdmin)->id]);
+    }
+
+    public function withRole(RoleName $role): static
+    {
+        return $this->state(['role_id' => Role::findBySlug($role)->id]);
     }
 
     public function unverified(): static
