@@ -1,0 +1,5 @@
+# Tâche cron unique à créer dans hPanel > Avancé > Tâches Cron (toutes les minutes).
+# Remplacer <utilisateur> et le chemin par ceux de votre compte Hostinger.
+# Le binaire PHP exact (ex. /usr/bin/php ou /opt/alt/php83/usr/bin/php) est indiqué dans hPanel.
+
+* * * * * cd /home/<utilisateur>/uptime-africa && php artisan schedule:run >> /dev/null 2>&1
