@@ -30,3 +30,6 @@ if (config('uptime.uptimerobot.api_key')) {
 // Notifications : incidents prolongés (toutes les 5 min) et résumés périodiques (chaque heure, envoi à 7 h locale).
 Schedule::command('notifications:prolonged')->everyFiveMinutes()->withoutOverlapping(10);
 Schedule::command('notifications:digest')->hourlyAt(2)->withoutOverlapping(30);
+
+// Abonnements : fins d'essai, échéances et expirations.
+Schedule::command('subscriptions:check')->hourlyAt(5)->withoutOverlapping(30);

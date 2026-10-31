@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\MonitoringProvider;
 use App\Models\Site;
 use App\Rules\PublicHttpUrl;
+use App\Services\Billing\PlanLimits;
 use App\Support\TenantContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -97,7 +98,8 @@ class SiteRequest extends FormRequest
     /** @return list<int> */
     public function allowedIntervals(): array
     {
-        $min = (int) config('uptime.monitoring.min_interval_minutes');
+        $planMin = ($agencyId = app(TenantContext::class)->id()) ? app(PlanLimits::class)->minInterval($agencyId) : null;
+        $min = max((int) config('uptime.monitoring.min_interval_minutes'), (int) $planMin);
 
         return array_values(array_filter(self::INTERVALS, fn ($i) => $i >= $min));
     }

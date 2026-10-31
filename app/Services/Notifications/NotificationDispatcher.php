@@ -5,11 +5,13 @@ namespace App\Services\Notifications;
 use App\Enums\ChannelType;
 use App\Enums\NotificationEvent;
 use App\Enums\NotificationStatus;
+use App\Enums\PlanFeature;
 use App\Jobs\SendNotification;
 use App\Models\Incident;
 use App\Models\NotificationChannel;
 use App\Models\NotificationLog;
 use App\Models\NotificationPreference;
+use App\Services\Billing\PlanLimits;
 use Illuminate\Support\Collection;
 
 /**
@@ -19,7 +21,7 @@ use Illuminate\Support\Collection;
  */
 class NotificationDispatcher
 {
-    public function __construct(private readonly WhatsAppClient $whatsapp) {}
+    public function __construct(private readonly WhatsAppClient $whatsapp, private readonly PlanLimits $limits) {}
 
     public function incidentOpened(Incident $incident): int
     {
@@ -51,6 +53,9 @@ class NotificationDispatcher
     /** Incident encore ouvert après le seuil de la préférence : une seule alerte par incident et destinataire. */
     public function incidentProlonged(Incident $incident): int
     {
+        if (! $this->limits->has($incident->agency_id, PlanFeature::AdvancedNotifications)) {
+            return 0; // alerte de panne prolongée : notifications avancées (Pro, Business)
+        }
         $minutes = (int) $incident->started_at->diffInMinutes(now(), true);
 
         return $this->forIncident($incident, NotificationEvent::IncidentProlonged, function (NotificationPreference $pref) use ($minutes) {
@@ -105,7 +110,10 @@ class NotificationDispatcher
             if (! NotificationSettings::allows($incident->agency_id, $channel->type)) {
                 continue;
             }
-            if ($channel->type === ChannelType::WhatsApp && ! $this->whatsapp->isConfigured()) {
+            if ($channel->type === ChannelType::WhatsApp && ! $this->limits->allowsWhatsApp($incident->agency_id)) {
+                $values['status'] = NotificationStatus::Skipped->value;
+                $values['error_message'] = 'La formule de l\'agence n\'inclut pas WhatsApp.';
+            } elseif ($channel->type === ChannelType::WhatsApp && ! $this->whatsapp->isConfigured()) {
                 // Tracé dans le journal plutôt qu'ignoré en silence ; jamais présenté comme envoyé.
                 $values['status'] = NotificationStatus::Skipped->value;
                 $values['error_message'] = 'WhatsApp n\'est pas configuré sur le serveur.';

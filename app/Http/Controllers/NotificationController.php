@@ -9,6 +9,7 @@ use App\Models\AuditLog;
 use App\Models\NotificationChannel;
 use App\Models\NotificationLog;
 use App\Models\NotificationPreference;
+use App\Services\Billing\PlanLimits;
 use App\Services\Notifications\ChannelSender;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Services\Notifications\NotificationSettings;
@@ -18,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class NotificationController extends Controller
@@ -67,6 +69,10 @@ class NotificationController extends Controller
             'destination.regex' => 'Le numéro WhatsApp doit être au format international, par exemple +2250701020304.',
             'destination.unique' => 'Ce destinataire existe déjà.',
         ], ['destination' => 'destinataire', 'label' => 'libellé']);
+
+        if ($data['type'] === ChannelType::WhatsApp->value && ! app(PlanLimits::class)->allowsWhatsApp($request->user()->agency_id)) {
+            throw ValidationException::withMessages(['destination' => 'Votre formule n\'inclut pas les alertes WhatsApp (formules Pro et Business).']);
+        }
 
         DB::transaction(function () use ($data, $request) {
             $channel = new NotificationChannel($data);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Check;
 use App\Models\Site;
+use App\Services\Billing\PlanLimits;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -20,7 +21,7 @@ class CheckController extends Controller
             'periode' => ['nullable', Rule::in(array_keys(self::PERIODS))],
         ]);
 
-        $days = self::PERIODS[$filters['periode'] ?? '7j'];
+        $days = min(self::PERIODS[$filters['periode'] ?? '7j'], app(PlanLimits::class)->retentionDays($request->user()->agency_id));
 
         $checks = Check::query()
             ->with('site:id,name,url')

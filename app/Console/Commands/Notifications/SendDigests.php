@@ -5,12 +5,14 @@ namespace App\Console\Commands\Notifications;
 use App\Enums\ChannelType;
 use App\Enums\NotificationEvent;
 use App\Enums\NotificationStatus;
+use App\Enums\PlanFeature;
 use App\Mail\DigestMail;
 use App\Models\Agency;
 use App\Models\Incident;
 use App\Models\NotificationChannel;
 use App\Models\NotificationLog;
 use App\Models\Site;
+use App\Services\Billing\PlanLimits;
 use App\Services\Monitoring\UptimeStats;
 use App\Services\Notifications\NotificationSettings;
 use App\Support\TenantContext;
@@ -35,7 +37,8 @@ class SendDigests extends Command
 
         foreach (Agency::where('is_active', true)->get() as $agency) {
             $settings = NotificationSettings::for($agency->id);
-            if (! $settings['enabled'] || ! $settings['channels']['email'] || $settings['digest'] === 'off') {
+            if (! $settings['enabled'] || ! $settings['channels']['email'] || $settings['digest'] === 'off'
+                || ! app(PlanLimits::class)->has($agency, PlanFeature::AdvancedNotifications)) {
                 continue;
             }
 

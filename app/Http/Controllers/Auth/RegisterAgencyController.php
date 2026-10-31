@@ -6,7 +6,9 @@ use App\Enums\RoleName;
 use App\Http\Controllers\Controller;
 use App\Models\Agency;
 use App\Models\AuditLog;
+use App\Models\Plan;
 use App\Models\User;
+use App\Services\Billing\SubscriptionManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,6 +47,11 @@ class RegisterAgencyController extends Controller
             $user = new User(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password']]);
             $user->agency_id = $agency->id;
             $user->assignRole(RoleName::Admin)->save();
+
+            $trialPlan = Plan::where('code', config('billing.trial_plan'))->where('is_active', true)->first();
+            if ($trialPlan && config('billing.trial_days') > 0) {
+                app(SubscriptionManager::class)->startTrial($agency, $trialPlan, (int) config('billing.trial_days'));
+            }
 
             return $user;
         });

@@ -7,6 +7,7 @@ use App\Enums\IncidentType;
 use App\Models\AuditLog;
 use App\Models\Incident;
 use App\Models\Site;
+use App\Services\Billing\PlanLimits;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,8 +23,11 @@ class IncidentController extends Controller
             'site' => ['nullable', 'string', 'max:26'],
         ]);
 
+        $retention = app(PlanLimits::class)->retentionDays($request->user()->agency_id);
         $incidents = Incident::query()
             ->with('site:id,name,url')
+            // Historique limité par la formule ; un incident encore ouvert reste toujours visible.
+            ->where(fn ($q) => $q->where('started_at', '>=', now()->subDays($retention))->orWhereNull('resolved_at'))
             ->when($filters['statut'] ?? null, fn ($q, $s) => $q->where('status', $s))
             ->when($filters['type'] ?? null, fn ($q, $t) => $q->where('type', $t))
             ->when($filters['site'] ?? null, fn ($q, $s) => $q->where('site_id', $s))

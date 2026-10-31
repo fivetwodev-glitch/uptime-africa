@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\Client;
+use App\Services\Billing\PlanLimits;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,7 +44,9 @@ class ClientController extends Controller
     {
         $this->authorize('clients.manage');
 
-        $client = Client::create($this->validated($request));
+        $data = $this->validated($request);
+        app(PlanLimits::class)->ensureCanAdd($request->user()->agency_id, 'clients', 'name');
+        $client = Client::create($data);
         AuditLog::record('client.created', $client);
 
         return redirect()->route('clients.show', $client)->with('status', 'Client ajouté.');
