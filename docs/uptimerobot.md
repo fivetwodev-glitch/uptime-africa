@@ -27,7 +27,7 @@ Après modification de `.env` : `php artisan config:clear` (ou `config:cache` en
 | Doublons | `GET /monitors?url=<hôte>` | filtre partiel, comparaison exacte côté serveur (`Site::hashUrl`) |
 | Créer | `POST /monitors` | `CreateHttpMonitorDto` : `type=HTTP`, `friendlyName`, `url`, `interval` (s), `timeout`, `httpMethodType=GET`, `followRedirections`, `successHttpResponseCodes` |
 | Lire un moniteur | `GET /monitors/{id}` | association par ID, synchronisation d'un site |
-| Temps de réponse | `GET /monitors/{id}/stats/response-time?from=…&includeTimeSeries=true` | dernière valeur de `time_series`, budget limité |
+| Temps de réponse | `GET /monitors/{id}/stats/response-time?from=…&to=…&includeTimeSeries=true` | dernière valeur de `time_series`, budget limité. `to` est indiqué facultatif dans la spec mais l'API réelle répond 400 (`000-012`) sans lui. |
 | Modifier | `PATCH /monitors/{id}` | nom, URL, intervalle, délai |
 | Pause / reprise | `POST /monitors/{id}/pause` · `/start` | |
 | Supprimer | `DELETE /monitors/{id}` | seulement les moniteurs créés par Uptime Africa |

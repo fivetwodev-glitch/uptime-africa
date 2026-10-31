@@ -215,6 +215,7 @@ class SyncEngineSimulatedScenariosTest extends InterfaceTestCase
         app(SyncEngine::class)->run(force: true);
 
         $this->assertCount(1, Http::recorded(fn (Request $r) => str_contains($r->url(), '/stats/response-time')));
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), '/stats/response-time') && isset($r['from'], $r['to']));
     }
 
     public function test_simule_boutons_manuels_limites_a_l_agence(): void

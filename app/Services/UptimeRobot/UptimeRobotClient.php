@@ -113,8 +113,10 @@ class UptimeRobotClient
      */
     public function latestResponseTime(int $id, \DateTimeInterface $from): ?int
     {
+        // « to » est documenté comme facultatif, mais l'API répond 400 (code 000-012) sans lui.
         $stats = $this->send('get', "/monitors/{$id}/stats/response-time", [
             'from' => $from->format('Y-m-d\TH:i:s\Z'),
+            'to' => now()->utc()->format('Y-m-d\TH:i:s\Z'),
             'includeTimeSeries' => 'true',
         ]);
 
