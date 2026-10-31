@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisterAgencyController;
 use App\Http\Controllers\CheckController;
 use App\Http\Controllers\ClientController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\TeamController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'home')->name('home');
@@ -20,12 +23,19 @@ Route::middleware('guest')->group(function () {
     Route::post('/connexion', [LoginController::class, 'store'])->middleware('throttle:login');
     Route::get('/inscription', [RegisterAgencyController::class, 'create'])->name('register');
     Route::post('/inscription', [RegisterAgencyController::class, 'store'])->middleware('throttle:register');
+
+    Route::get('/mot-de-passe-oublie', [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::post('/mot-de-passe-oublie', [PasswordResetLinkController::class, 'store'])->middleware('throttle:password-reset')->name('password.email');
+    Route::get('/reinitialisation/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reinitialisation', [NewPasswordController::class, 'store'])->middleware('throttle:password-reset')->name('password.store');
 });
 
-Route::middleware('auth')->group(function () {
+// auth.session : une session dont le mot de passe a changé depuis est fermée.
+Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/deconnexion', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
+    Route::patch('/admin/agences/{agency}/statut', [AdminController::class, 'toggleAgency'])->name('admin.agencies.toggle');
 
     Route::middleware('agency')->group(function () {
         Route::get('/tableau-de-bord', DashboardController::class)->name('dashboard');
@@ -53,5 +63,16 @@ Route::middleware('auth')->group(function () {
         Route::put('/parametres/agence', [SettingsController::class, 'updateAgency'])->name('settings.agency');
         Route::put('/parametres/profil', [SettingsController::class, 'updateProfile'])->name('settings.profile');
         Route::put('/parametres/mot-de-passe', [SettingsController::class, 'updatePassword'])->name('settings.password');
+        Route::get('/parametres/securite', [SettingsController::class, 'security'])->name('settings.security');
+        Route::delete('/parametres/sessions', [SettingsController::class, 'logoutOtherSessions'])->name('settings.sessions.destroy');
+
+        Route::get('/parametres/equipe', [TeamController::class, 'index'])->name('team.index');
+        Route::get('/parametres/equipe/ajouter', [TeamController::class, 'create'])->name('team.create');
+        Route::post('/parametres/equipe', [TeamController::class, 'store'])->name('team.store');
+        Route::get('/parametres/equipe/{member}/modifier', [TeamController::class, 'edit'])->name('team.edit');
+        Route::put('/parametres/equipe/{member}', [TeamController::class, 'update'])->name('team.update');
+        Route::patch('/parametres/equipe/{member}/statut', [TeamController::class, 'toggle'])->name('team.toggle');
+        Route::post('/parametres/equipe/{member}/invitation', [TeamController::class, 'resendInvitation'])->name('team.invitation');
+        Route::delete('/parametres/equipe/{member}', [TeamController::class, 'destroy'])->name('team.destroy');
     });
 });

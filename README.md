@@ -3,8 +3,9 @@
 Plateforme SaaS de surveillance de sites web pour les agences web, freelances et entreprises
 d'Afrique francophone. Interface en français, montants en FCFA (XOF).
 
-> **Statut : phase 2 (interface).** Base de données, rôles et permissions, isolation multi-agences,
-> connexion / inscription et interface complète (8 pages) sont en place. Le moteur de contrôles
+> **Statut : phase 2 (interface + authentification).** Base de données, isolation multi-agences,
+> authentification complète (inscription, connexion, mot de passe oublié, invitations, 3 rôles)
+> et interface (8 pages) sont en place. Le moteur de contrôles
 > et l'envoi des alertes arrivent à la phase suivante : d'ici là, les pages de mesures affichent
 > des états vides explicites (voir [docs/interface.md](docs/interface.md)).
 
@@ -38,6 +39,8 @@ powershell -ExecutionPolicy Bypass -File scripts\start.ps1
 ```
 
 Ouvrir <http://127.0.0.1:8000>, puis « Créer un compte » pour créer votre agence.
+En local, les emails (réinitialisation, invitation) sont écrits dans `storage\logs\laravel-*.log`
+(`MAIL_MAILER=log`) : copiez-y le lien.
 Pour explorer avec des données de test : `php artisan db:seed --class=TestDataSeeder`
 (les identifiants générés s'affichent dans le terminal).
 
@@ -104,7 +107,7 @@ Détail de chaque variable : [docs/configuration.md](docs/configuration.md).
 - [Interface et routes](docs/interface.md)
 - [Configuration](docs/configuration.md)
 - [Erreurs et journalisation](docs/erreurs-et-journaux.md)
-- [Sécurité](docs/securite.md)
+- [Sécurité, rôles et authentification](docs/securite.md)
 - [Déploiement Hostinger](docs/deploiement-hostinger.md) (pas encore exécuté)
 
 ## Règles du projet

@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -44,12 +45,27 @@ class AppServiceProvider extends ServiceProvider
             return null;
         });
 
+        // Anti force brute : par compte + IP, par IP, et par compte toutes IP confondues.
         RateLimiter::for('login', fn (Request $request) => [
-            Limit::perMinute(5)->by(mb_strtolower((string) $request->input('email')).'|'.$request->ip()),
-            Limit::perMinute(20)->by($request->ip()),
+            Limit::perMinute(5)->by('login:'.mb_strtolower((string) $request->input('email')).'|'.$request->ip()),
+            Limit::perMinute(20)->by('login-ip:'.$request->ip()),
+            Limit::perHour(30)->by('login-account:'.mb_strtolower((string) $request->input('email'))),
         ]);
 
-        RateLimiter::for('register', fn (Request $request) => Limit::perHour(10)->by($request->ip()));
+        RateLimiter::for('password-reset', fn (Request $request) => [
+            Limit::perHour(5)->by('reset:'.mb_strtolower((string) $request->input('email'))),
+            Limit::perHour(20)->by('reset-ip:'.$request->ip()),
+        ]);
+
+        RateLimiter::for('register', fn (Request $request) => Limit::perHour(10)->by('register:'.$request->ip()));
+
+        // {member} : un utilisateur n'est résolu que dans l'agence courante (404 sinon).
+        Route::bind('member', function (string $value) {
+            $agencyId = app(TenantContext::class)->id();
+            abort_if($agencyId === null || ! ctype_digit($value), 404);
+
+            return User::where('agency_id', $agencyId)->findOrFail((int) $value);
+        });
 
         Paginator::defaultView('components.pagination');
     }

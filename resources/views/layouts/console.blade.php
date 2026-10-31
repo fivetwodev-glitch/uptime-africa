@@ -17,7 +17,7 @@
         ['checks.index', 'Contrôles', 'pulse', 'checks.*', 'sites.view'],
         ['notifications.index', 'Notifications', 'bell', 'notifications.*', 'notifications.view'],
         ['subscription.show', 'Abonnement', 'card', 'subscription.*', 'subscriptions.view'],
-        ['settings.index', 'Paramètres', 'cog', 'settings.*', null],
+        ['settings.index', 'Paramètres', 'cog', ['settings.*', 'team.*'], null],
     ];
     $user = auth()->user();
     $openIncidents = \App\Models\Incident::open()->count();
@@ -40,7 +40,7 @@
     <nav class="flex-1 space-y-0.5 overflow-y-auto px-3" aria-label="Menu principal">
         @foreach ($navigation as [$route, $label, $icon, $pattern, $permission])
             @if (! $permission || $user->can($permission))
-                @php $active = request()->routeIs($pattern); @endphp
+                @php $active = request()->routeIs(...(array) $pattern); @endphp
                 <a href="{{ route($route) }}" @if ($active) aria-current="page" @endif
                    class="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition
                           {{ $active ? 'bg-electric-500 text-white shadow-sm' : 'text-slate-300 hover:bg-night-800 hover:text-white' }}">

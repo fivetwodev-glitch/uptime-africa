@@ -34,7 +34,7 @@
         @else
             <div class="overflow-x-auto">
                 <table class="data-table">
-                    <thead><tr><th>Agence</th><th>Statut</th><th>Utilisateurs</th><th>Clients</th><th>Sites</th><th>Inscrite le</th></tr></thead>
+                    <thead><tr><th>Agence</th><th>Statut</th><th>Utilisateurs</th><th>Clients</th><th>Sites</th><th>Inscrite le</th><th class="text-right"><span class="sr-only">Actions</span></th></tr></thead>
                     <tbody class="divide-y divide-slate-100">
                     @foreach ($agencies as $agency)
                         <tr>
@@ -48,6 +48,13 @@
                             <td class="tabular-nums">{{ $agency->clients_count }}</td>
                             <td class="tabular-nums">{{ $agency->sites_count }}</td>
                             <td class="whitespace-nowrap text-slate-500">{{ \App\Support\Format::datetime($agency->created_at) }}</td>
+                            <td class="text-right">
+                                <form method="POST" action="{{ route('admin.agencies.toggle', $agency) }}"
+                                      data-confirm="{{ $agency->is_active ? 'Suspendre' : 'Réactiver' }} l'agence {{ $agency->name }} ?{{ $agency->is_active ? ' Tous ses utilisateurs seront déconnectés.' : '' }}">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" class="{{ $agency->is_active ? 'btn-danger' : 'btn-secondary' }} btn-sm">{{ $agency->is_active ? 'Suspendre' : 'Réactiver' }}</button>
+                                </form>
+                            </td>
                         </tr>
                     @endforeach
                     </tbody>

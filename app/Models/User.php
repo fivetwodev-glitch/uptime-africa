@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\RoleName;
 use App\Exceptions\UptimeException;
+use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -66,6 +68,12 @@ class User extends Authenticatable
         });
     }
 
+    /** Emails stockés en minuscules : unicité et connexion insensibles à la casse sur tous les SGBD. */
+    protected function email(): Attribute
+    {
+        return Attribute::set(fn (?string $value) => $value === null ? null : mb_strtolower(trim($value)));
+    }
+
     public function agency(): BelongsTo
     {
         return $this->belongsTo(Agency::class);
@@ -91,6 +99,17 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->hasRole(RoleName::SuperAdmin);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
+    /** Rôle d'agence (jamais super administrateur). */
+    public function isAgencyAdmin(): bool
+    {
+        return $this->hasRole(RoleName::Admin);
     }
 
     public function hasPermission(string $permission): bool

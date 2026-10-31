@@ -35,7 +35,7 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'is_active' => true,
             'agency_id' => Agency::factory(),
-            'role_id' => fn () => Role::findBySlug(RoleName::Owner)->id,
+            'role_id' => fn () => Role::findBySlug(RoleName::Admin)->id,
         ];
     }
 

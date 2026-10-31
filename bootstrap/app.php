@@ -5,13 +5,16 @@ use App\Http\Middleware\AssignRequestId;
 use App\Http\Middleware\EnsureAgencyUser;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SetTenantContext;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -54,6 +57,18 @@ return Application::configure(basePath: dirname(__DIR__))
                 'status' => $e->status,
                 'message' => $e->userMessage,
             ], $e->status);
+        });
+
+        // Refus d'autorisation : tracés dans le journal de sécurité (non rapportés par défaut).
+        $exceptions->render(function (AuthorizationException|AccessDeniedHttpException $e, Request $request) {
+            Log::channel('security')->warning('Accès refusé', [
+                'user_id' => $request->user()?->id,
+                'method' => $request->method(),
+                'path' => $request->path(),
+                'ip' => $request->ip(),
+            ]);
+
+            return null;
         });
 
         // Réponses JSON homogènes, sans détail technique hors debug.

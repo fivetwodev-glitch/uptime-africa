@@ -16,7 +16,7 @@ abstract class InterfaceTestCase extends TestCase
 {
     use RefreshDatabase;
 
-    protected function userFor(?Agency $agency = null, RoleName $role = RoleName::Owner): User
+    protected function userFor(?Agency $agency = null, RoleName $role = RoleName::Admin): User
     {
         return User::factory()->withRole($role)->create(['agency_id' => ($agency ?? Agency::factory()->create())->id]);
     }

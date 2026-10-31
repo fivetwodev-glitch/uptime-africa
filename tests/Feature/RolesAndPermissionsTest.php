@@ -25,30 +25,25 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertSame(count(config('permissions.permissions')), Permission::count());
     }
 
-    public function test_owner_can_manage_everything_in_the_agency_but_not_the_platform(): void
-    {
-        $owner = User::factory()->withRole(RoleName::Owner)->create();
-
-        $this->assertTrue($owner->hasPermission('subscriptions.manage'));
-        $this->assertTrue($owner->hasPermission('sites.manage'));
-        $this->assertFalse($owner->hasPermission('admin.access'));
-    }
-
-    public function test_agency_admin_cannot_manage_subscription(): void
+    public function test_agency_admin_manages_everything_in_the_agency_but_not_the_platform(): void
     {
         $admin = User::factory()->withRole(RoleName::Admin)->create();
 
         $this->assertTrue($admin->hasPermission('users.manage'));
-        $this->assertFalse($admin->hasPermission('subscriptions.manage'));
+        $this->assertTrue($admin->hasPermission('subscriptions.manage'));
+        $this->assertTrue($admin->hasPermission('sites.manage'));
+        $this->assertFalse($admin->hasPermission('admin.access'));
     }
 
-    public function test_viewer_is_read_only(): void
+    public function test_collaborator_works_on_sites_but_cannot_administer_the_agency(): void
     {
-        $viewer = User::factory()->withRole(RoleName::Viewer)->create();
+        $collaborator = User::factory()->withRole(RoleName::Collaborator)->create();
 
-        $this->assertTrue($viewer->hasPermission('sites.view'));
-        $this->assertFalse($viewer->hasPermission('sites.manage'));
-        $this->assertFalse($viewer->hasPermission('clients.manage'));
+        $this->assertTrue($collaborator->hasPermission('sites.manage'));
+        $this->assertTrue($collaborator->hasPermission('incidents.acknowledge'));
+        foreach (['users.manage', 'agency.update', 'notifications.manage', 'subscriptions.view', 'settings.manage', 'audit.view', 'admin.access'] as $permission) {
+            $this->assertFalse($collaborator->hasPermission($permission), $permission);
+        }
     }
 
     public function test_super_admin_has_every_permission(): void
@@ -71,15 +66,15 @@ class RolesAndPermissionsTest extends TestCase
     {
         $this->expectException(UptimeException::class);
 
-        User::factory()->withRole(RoleName::Member)->create(['agency_id' => null]);
+        User::factory()->withRole(RoleName::Collaborator)->create(['agency_id' => null]);
     }
 
     public function test_a_role_in_use_cannot_be_deleted(): void
     {
-        User::factory()->withRole(RoleName::Member)->create();
+        User::factory()->withRole(RoleName::Collaborator)->create();
 
         $this->expectException(QueryException::class);
 
-        Role::findBySlug(RoleName::Member)->delete();
+        Role::findBySlug(RoleName::Collaborator)->delete();
     }
 }

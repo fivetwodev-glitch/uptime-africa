@@ -27,6 +27,8 @@ class RegisterAgencyController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
+
         $data = $request->validate([
             'agency_name' => ['required', 'string', 'min:2', 'max:120'],
             'name' => ['required', 'string', 'max:120'],
@@ -42,7 +44,7 @@ class RegisterAgencyController extends Controller
 
             $user = new User(['name' => $data['name'], 'email' => $data['email'], 'password' => $data['password']]);
             $user->agency_id = $agency->id;
-            $user->assignRole(RoleName::Owner)->save();
+            $user->assignRole(RoleName::Admin)->save();
 
             return $user;
         });

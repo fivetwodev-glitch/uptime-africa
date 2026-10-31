@@ -29,32 +29,22 @@ return [
 
     'roles' => [
         'super_admin' => [
-            'name' => 'Administrateur général',
+            'name' => 'Super administrateur',
             'description' => 'Équipe Uptime Africa. N\'appartient à aucune agence.',
             'permissions' => ['*'],
         ],
-        'owner' => [
-            'name' => 'Propriétaire',
-            'description' => 'Responsable de l\'agence et de son abonnement.',
-            'permissions' => ['*', '!admin.access'],
-        ],
         'admin' => [
             'name' => 'Administrateur d\'agence',
-            'description' => 'Gère l\'agence au quotidien, sans l\'abonnement.',
-            'permissions' => ['*', '!admin.access', '!subscriptions.manage', '!agency.update'],
+            'description' => 'Gère l\'agence, son équipe, ses alertes et son abonnement.',
+            'permissions' => ['*', '!admin.access'],
         ],
-        'member' => [
-            'name' => 'Membre',
-            'description' => 'Gère les clients, les sites et les incidents.',
+        'collaborator' => [
+            'name' => 'Collaborateur',
+            'description' => 'Gère les clients, les sites et les incidents de l\'agence.',
             'permissions' => [
-                'agency.view', 'clients.view', 'clients.manage', 'sites.view', 'sites.manage',
+                'agency.view', 'users.view', 'clients.view', 'clients.manage', 'sites.view', 'sites.manage',
                 'incidents.view', 'incidents.acknowledge', 'notifications.view',
             ],
-        ],
-        'viewer' => [
-            'name' => 'Lecteur',
-            'description' => 'Consultation uniquement.',
-            'permissions' => ['agency.view', 'clients.view', 'sites.view', 'incidents.view'],
         ],
     ],
 

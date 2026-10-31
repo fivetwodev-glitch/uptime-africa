@@ -67,7 +67,7 @@ class TestDataSeeder extends Seeder
             // Toutes les écritures suivantes sont rattachées à cette agence.
             app(TenantContext::class)->set($agency->id);
 
-            foreach ([[RoleName::Owner, 'proprietaire'], [RoleName::Member, 'membre']] as [$role, $who]) {
+            foreach ([[RoleName::Admin, 'admin'], [RoleName::Collaborator, 'collaborateur']] as [$role, $who]) {
                 $email = "{$who}.{$slug}@example.com";
                 $user = User::firstOrNew(['email' => $email]);
 

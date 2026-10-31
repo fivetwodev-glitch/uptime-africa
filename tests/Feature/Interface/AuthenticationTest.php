@@ -83,7 +83,7 @@ class AuthenticationTest extends InterfaceTestCase
 
         $user = User::where('email', 'awa@lagune.ci')->firstOrFail();
         $this->assertAuthenticatedAs($user);
-        $this->assertTrue($user->hasRole(RoleName::Owner));
+        $this->assertTrue($user->hasRole(RoleName::Admin));
         $this->assertSame('Agence Lagune', $user->agency->name);
         $this->assertFalse($user->agency->is_test_data);
     }

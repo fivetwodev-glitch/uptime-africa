@@ -26,10 +26,10 @@ Jetons et classes (`card`, `btn-primary`, `input`, `data-table`…) : `resources
 | Contrôles | `checks.index` | `/controles` | `sites.view` |
 | Notifications | `notifications.*` | `/notifications` | `notifications.view` (écriture : `notifications.manage`) |
 | Abonnement | `subscription.show` | `/abonnement` | `subscriptions.view` |
-| Paramètres | `settings.*` | `/parametres` | connecté (agence : `agency.update`) |
+| Paramètres | `settings.*`, `team.*` | `/parametres`, `/parametres/securite`, `/parametres/equipe` | connecté (agence : `agency.update`, équipe : `users.view` / `users.manage`) |
 | Administration | `admin.index` | `/admin` | `admin.access` (super admin uniquement) |
 
-Publiques : `/`, `/connexion`, `/inscription`. Le menu masque les entrées non autorisées ;
+Publiques : `/`, `/connexion`, `/inscription`, `/mot-de-passe-oublie`, `/reinitialisation/{jeton}`. Le menu masque les entrées non autorisées ;
 les contrôleurs vérifient la permission (403 sinon).
 
 ## Règles de données
@@ -49,7 +49,7 @@ les contrôleurs vérifient la permission (403 sinon).
 | Incidents | filtres statut / type / site, prise en charge |
 | Contrôles | filtres site / résultat / période |
 | Notifications | ajouter un destinataire email ou WhatsApp, préférences (panne, rétablissement, délai), activer / désactiver, supprimer, journal filtrable |
-| Paramètres | agence, profil, mot de passe ; équipe en lecture |
+| Paramètres | profil, agence, mot de passe, sessions ouvertes ; équipe : inviter, modifier le rôle, désactiver, renvoyer l'invitation, supprimer |
 
 ## Volontairement absent (phase suivante)
 
@@ -58,11 +58,10 @@ les contrôleurs vérifient la permission (403 sinon).
 | Moteur de contrôles | états vides « aucun contrôle » |
 | Envoi des alertes / vérification des destinataires | « Non vérifié », journal vide |
 | Paiement en ligne | pas de bouton d'achat ; lien email si `UPTIME_SUPPORT_EMAIL` est renseigné |
-| Invitation de membres | liste d'équipe en lecture seule |
 
 ## Sécurité de l'interface
 
 - `SetTenantContext` passe avant la liaison des routes : un identifiant d'une autre agence renvoie 404.
 - URL surveillée : `PublicHttpUrl` (http/https, ports 80/443/8080/8443, pas d'IP privée ni de domaine interne).
-- Connexion limitée à 5 essais/min (email + IP) ; inscription à 10/heure par IP.
+- Authentification, rôles et sessions : voir [securite.md](securite.md).
 - Compte désactivé : déconnecté à la requête suivante.
