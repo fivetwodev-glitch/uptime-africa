@@ -9,6 +9,7 @@ use App\Http\Requests\SiteRequest;
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Site;
+use App\Services\Billing\PlanLimits;
 use App\Services\Monitoring\UptimeStats;
 use App\Services\UptimeRobot\SyncEngine;
 use App\Services\UptimeRobot\SyncReport;
@@ -66,6 +67,7 @@ class SiteController extends Controller
 
     public function store(SiteRequest $request, UptimeRobotMonitors $uptimeRobot): RedirectResponse
     {
+        app(PlanLimits::class)->ensureCanAdd($request->user()->agency_id, 'sites', 'url');
         $data = $request->validated();
         $monitorId = $this->pullUptimeRobotId($data);
 

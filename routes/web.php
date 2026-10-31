@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\DirectoryController;
+use App\Http\Controllers\Admin\PlanController;
+use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionController;
 use App\Http\Controllers\Admin\UptimeRobotController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -51,8 +54,28 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/deconnexion', [LoginController::class, 'destroy'])->name('logout');
 
-    Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
-    Route::patch('/admin/agences/{agency}/statut', [AdminController::class, 'toggleAgency'])->name('admin.agencies.toggle');
+    // Espace Super Admin : refusé (403) à tout autre rôle, y compris les administrateurs d'agence.
+    Route::middleware('can:admin.access')->group(function () {
+        Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
+        Route::get('/admin/statistiques', [AdminController::class, 'stats'])->name('admin.stats');
+        Route::patch('/admin/agences/{agency}/statut', [AdminController::class, 'toggleAgency'])->name('admin.agencies.toggle');
+        Route::get('/admin/utilisateurs', [DirectoryController::class, 'users'])->name('admin.users');
+        Route::patch('/admin/utilisateurs/{user}/statut', [DirectoryController::class, 'toggleUser'])->name('admin.users.toggle');
+        Route::get('/admin/sites', [DirectoryController::class, 'sites'])->name('admin.sites');
+        Route::get('/admin/incidents', [DirectoryController::class, 'incidents'])->name('admin.incidents');
+        Route::get('/admin/journal', [DirectoryController::class, 'audit'])->name('admin.audit');
+        Route::get('/admin/offres', [PlanController::class, 'index'])->name('admin.plans');
+        Route::get('/admin/offres/{plan}/modifier', [PlanController::class, 'edit'])->name('admin.plans.edit');
+        Route::put('/admin/offres/{plan}', [PlanController::class, 'update'])->name('admin.plans.update');
+        Route::get('/admin/abonnements', [AdminSubscriptionController::class, 'index'])->name('admin.subscriptions');
+        Route::post('/admin/abonnements', [AdminSubscriptionController::class, 'store'])->name('admin.subscriptions.store');
+        Route::get('/admin/abonnements/{subscription}', [AdminSubscriptionController::class, 'show'])->name('admin.subscriptions.show');
+        Route::post('/admin/abonnements/{subscription}/offre', [AdminSubscriptionController::class, 'changePlan'])->name('admin.subscriptions.change');
+        Route::post('/admin/abonnements/{subscription}/renouveler', [AdminSubscriptionController::class, 'renew'])->name('admin.subscriptions.renew');
+        Route::delete('/admin/abonnements/{subscription}', [AdminSubscriptionController::class, 'cancel'])->name('admin.subscriptions.cancel');
+        Route::post('/admin/paiements/{payment}/confirmer', [AdminSubscriptionController::class, 'confirmPayment'])->name('admin.payments.confirm');
+        Route::post('/admin/paiements/{payment}/annuler', [AdminSubscriptionController::class, 'cancelPayment'])->name('admin.payments.cancel');
+    });
     Route::get('/admin/uptimerobot', [UptimeRobotController::class, 'index'])->name('admin.uptimerobot');
     Route::post('/admin/uptimerobot/test', [UptimeRobotController::class, 'test'])->middleware('throttle:6,1')->name('admin.uptimerobot.test');
     Route::post('/admin/uptimerobot/synchroniser', [UptimeRobotController::class, 'sync'])->middleware('throttle:3,1')->name('admin.uptimerobot.sync');
@@ -81,7 +104,10 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         Route::post('/notifications/canaux/{channel}/test', [NotificationController::class, 'test'])->middleware('throttle:notification-test')->name('notifications.channels.test');
         Route::put('/notifications/parametres', [NotificationController::class, 'updateSettings'])->name('notifications.settings');
 
-        Route::get('/abonnement', SubscriptionController::class)->name('subscription.show');
+        Route::get('/abonnement', [SubscriptionController::class, 'show'])->name('subscription.show');
+        Route::post('/abonnement/formule', [SubscriptionController::class, 'requestPlan'])->middleware('throttle:6,1')->name('subscription.request');
+        Route::post('/abonnement/renouveler', [SubscriptionController::class, 'requestRenewal'])->middleware('throttle:6,1')->name('subscription.renew');
+        Route::delete('/abonnement/demandes/{payment}', [SubscriptionController::class, 'cancelRequest'])->name('subscription.request.cancel');
 
         Route::get('/parametres', [SettingsController::class, 'index'])->name('settings.index');
         Route::put('/parametres/agence', [SettingsController::class, 'updateAgency'])->name('settings.agency');

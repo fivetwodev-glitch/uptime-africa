@@ -4,6 +4,8 @@ namespace App\Enums;
 
 enum SubscriptionStatus: string
 {
+    // Demande de souscription ou de changement de plan, en attente de paiement (pas « en cours »).
+    case Pending = 'pending';
     case Trialing = 'trialing';
     case Active = 'active';
     case PastDue = 'past_due';
@@ -19,6 +21,7 @@ enum SubscriptionStatus: string
     public function label(): string
     {
         return match ($this) {
+            self::Pending => 'En attente de paiement',
             self::Trialing => 'Période d\'essai',
             self::Active => 'Actif',
             self::PastDue => 'Paiement en retard',

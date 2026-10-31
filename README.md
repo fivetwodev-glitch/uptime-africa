@@ -113,6 +113,7 @@ Détail de chaque variable : [docs/configuration.md](docs/configuration.md).
 - [Sécurité, rôles et authentification](docs/securite.md)
 - [Intégration UptimeRobot v3](docs/uptimerobot.md)
 - [Notifications email et WhatsApp](docs/notifications.md)
+- [Abonnements, paiements et Super Admin](docs/abonnements.md)
 - [Déploiement Hostinger](docs/deploiement-hostinger.md) (pas encore exécuté)
 
 ## Règles du projet

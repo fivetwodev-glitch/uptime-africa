@@ -26,7 +26,7 @@ class PagesTest extends InterfaceTestCase
 
     public function test_empty_agency_sees_explicit_empty_states_and_no_invented_figures(): void
     {
-        $user = $this->userFor();
+        $user = $this->userFor(Agency::factory()->withoutSubscription()->create());
 
         $this->actingAs($user)->get(route('dashboard'))
             ->assertOk()

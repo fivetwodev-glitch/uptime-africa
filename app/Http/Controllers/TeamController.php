@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
 use App\Notifications\InvitationNotification;
+use App\Services\Billing\PlanLimits;
 use App\Support\Sessions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,10 +57,7 @@ class TeamController extends Controller
             'role' => ['required', Rule::in($this->assignableRoles())],
         ], ['email.unique' => 'Cette adresse est déjà utilisée par un compte Uptime Africa.'], ['role' => 'rôle']);
 
-        $limit = $this->userLimit($actor);
-        if ($limit !== null && User::where('agency_id', $actor->agency_id)->count() >= $limit) {
-            throw ValidationException::withMessages(['email' => "Votre formule est limitée à {$limit} utilisateur(s)."]);
-        }
+        app(PlanLimits::class)->ensureCanAdd($actor->agency_id, 'users', 'email');
 
         $member = DB::transaction(function () use ($data, $actor) {
             $member = new User(['name' => $data['name'], 'email' => $data['email'], 'password' => Str::password(40)]);
@@ -206,6 +204,6 @@ class TeamController extends Controller
 
     private function userLimit(User $user): ?int
     {
-        return $user->agency->currentSubscription()->with('plan:id,max_users')->first()?->plan?->max_users;
+        return app(PlanLimits::class)->planFor($user->agency_id)?->max_users;
     }
 }

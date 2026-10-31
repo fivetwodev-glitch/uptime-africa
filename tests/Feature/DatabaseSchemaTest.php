@@ -133,7 +133,7 @@ class DatabaseSchemaTest extends TestCase
 
     public function test_only_one_current_subscription_per_agency(): void
     {
-        $agency = Agency::factory()->create();
+        $agency = Agency::factory()->withoutSubscription()->create();
         $plan = $this->plan();
         $this->subscription($agency, $plan, SubscriptionStatus::Expired);
         $this->subscription($agency, $plan, SubscriptionStatus::Active);
@@ -146,7 +146,7 @@ class DatabaseSchemaTest extends TestCase
     public function test_a_subscribed_plan_cannot_be_deleted(): void
     {
         $plan = $this->plan();
-        $this->subscription(Agency::factory()->create(), $plan, SubscriptionStatus::Active);
+        $this->subscription(Agency::factory()->withoutSubscription()->create(), $plan, SubscriptionStatus::Active);
 
         $this->expectException(QueryException::class);
 

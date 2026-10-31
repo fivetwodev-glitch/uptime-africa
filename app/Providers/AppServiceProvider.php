@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\Billing\PlanLimits;
 use App\Services\Notifications\WhatsAppClient;
 use App\Services\UptimeRobot\UptimeRobotClient;
 use App\Support\TenantContext;
@@ -23,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Une seule instance par requête (ou par commande).
         $this->app->scoped(TenantContext::class);
+        $this->app->scoped(PlanLimits::class);
 
         // La clé API n'est lue que depuis la configuration (variable d'environnement).
         $this->app->bind(UptimeRobotClient::class, fn () => UptimeRobotClient::fromConfig());
