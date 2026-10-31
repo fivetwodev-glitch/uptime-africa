@@ -53,5 +53,21 @@
             @endcan
         </form>
     </section>
+
+    <section class="card lg:col-span-2">
+        <div class="card-header"><h2 class="card-title">Intégration UptimeRobot</h2></div>
+        <div class="p-5 text-sm sm:p-6">
+            @if ($uptimeRobotConfigured)
+                <p class="flex items-center gap-2 text-night-900"><x-icon name="check" class="h-4 w-4 text-emerald-600"/> Connectée au compte UptimeRobot d'Uptime Africa. Choisissez « UptimeRobot » comme fournisseur d'un site pour créer son moniteur.</p>
+                <p class="mt-2 text-slate-600">Vos sites UptimeRobot :
+                    {{ $uptimeRobotSites->get('synced', 0) }} synchronisé(s) · {{ $uptimeRobotSites->get('pending', 0) }} en attente · {{ $uptimeRobotSites->get('failed', 0) }} en échec</p>
+            @else
+                <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900" role="alert">
+                    <p class="font-semibold">Intégration UptimeRobot non configurée.</p>
+                    <p class="mt-1">La clé API n'est pas encore installée sur le serveur par l'équipe Uptime Africa. Les sites UptimeRobot resteront « en échec » de synchronisation d'ici là ; la surveillance interne reste disponible.</p>
+                </div>
+            @endif
+        </div>
+    </section>
 </div>
 @endsection

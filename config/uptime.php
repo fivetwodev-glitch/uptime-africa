@@ -49,6 +49,24 @@ return [
         'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
     ],
 
+    /*
+    | UptimeRobot (API v3, compte central). La clé vient UNIQUEMENT de la variable
+    | d'environnement du serveur : jamais en base, jamais dans le code, jamais côté navigateur.
+    */
+    'uptimerobot' => [
+        'api_key' => env('ZITE_UPTIMEROBOT_API_KEY'),
+        'base_url' => 'https://api.uptimerobot.com/v3',
+        'timeout_seconds' => (int) env('UPTIMEROBOT_TIMEOUT', 15),
+        // Nouvelles tentatives sur erreur réseau, 5xx ou 429.
+        'max_attempts' => (int) env('UPTIMEROBOT_MAX_ATTEMPTS', 3),
+        // Attente maximale acceptée sur un 429 (Retry-After), pour rester dans la minute du cron.
+        'max_wait_seconds' => (int) env('UPTIMEROBOT_MAX_WAIT', 20),
+        // Taille de page de GET /monitors (doc : 1 à 200).
+        'page_size' => 200,
+        // Fréquence de synchronisation des statuts (minutes).
+        'sync_every_minutes' => (int) env('UPTIMEROBOT_SYNC_EVERY', 5),
+    ],
+
     'super_admin' => [
         'email' => env('SUPER_ADMIN_EMAIL'),
         'name' => env('SUPER_ADMIN_NAME', 'Administrateur'),

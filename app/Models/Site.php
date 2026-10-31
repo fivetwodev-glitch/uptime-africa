@@ -28,6 +28,7 @@ class Site extends Model
         'monitoring_status' => 'active',
         'monitoring_provider' => 'internal',
         'sync_status' => 'not_applicable',
+        'external_managed' => false,
         'consecutive_failures' => 0,
     ];
 
@@ -42,6 +43,7 @@ class Site extends Model
             'last_checked_at' => 'datetime',
             'next_check_at' => 'datetime',
             'last_synced_at' => 'datetime',
+            'external_managed' => 'boolean',
         ];
     }
 

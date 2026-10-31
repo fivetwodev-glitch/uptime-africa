@@ -62,6 +62,9 @@ Linux / macOS / WSL : `./scripts/install.sh` puis `./scripts/start.sh`.
 | Supprimer les données de test | `php artisan uptime:purge-test-data` |
 | Lire les logs | `storage\logs\laravel-AAAA-MM-JJ.log` |
 | Vérifier le planificateur | `php artisan schedule:list` |
+| UptimeRobot : tester la connexion | `php artisan uptimerobot:test` |
+| UptimeRobot : test réel de création | `php artisan uptimerobot:test-create https://votre-site.ci --delete` |
+| UptimeRobot : synchroniser | `php artisan uptimerobot:sync` |
 
 ## Arborescence
 
@@ -108,6 +111,7 @@ Détail de chaque variable : [docs/configuration.md](docs/configuration.md).
 - [Configuration](docs/configuration.md)
 - [Erreurs et journalisation](docs/erreurs-et-journaux.md)
 - [Sécurité, rôles et authentification](docs/securite.md)
+- [Intégration UptimeRobot v3](docs/uptimerobot.md)
 - [Déploiement Hostinger](docs/deploiement-hostinger.md) (pas encore exécuté)
 
 ## Règles du projet

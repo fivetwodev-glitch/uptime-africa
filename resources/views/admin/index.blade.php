@@ -17,6 +17,12 @@
         </form>
     </div>
 </header>
+<nav class="mx-auto flex max-w-7xl gap-1 px-4 pt-6 sm:px-6" aria-label="Administration">
+    @foreach ([['admin.index', 'Agences'], ['admin.uptimerobot', 'UptimeRobot']] as [$route, $label])
+        <a href="{{ route($route) }}" @if (request()->routeIs($route)) aria-current="page" @endif
+           class="rounded-lg px-3 py-2 text-sm font-semibold {{ request()->routeIs($route) ? 'bg-white text-electric-600 shadow-sm' : 'text-slate-500 hover:text-night-900' }}">{{ $label }}</a>
+    @endforeach
+</nav>
 <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6">
     <x-flash/>
     <x-page-header title="Agences" :subtitle="$agencies->total().' agence(s) inscrite(s)'"/>

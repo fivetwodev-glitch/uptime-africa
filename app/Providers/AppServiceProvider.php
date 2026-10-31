@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\UptimeRobot\UptimeRobotClient;
 use App\Support\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Une seule instance par requête (ou par commande).
         $this->app->scoped(TenantContext::class);
+
+        // La clé API n'est lue que depuis la configuration (variable d'environnement).
+        $this->app->bind(UptimeRobotClient::class, fn () => UptimeRobotClient::fromConfig());
     }
 
     public function boot(): void

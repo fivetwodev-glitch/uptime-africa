@@ -65,3 +65,14 @@ les contrôleurs vérifient la permission (403 sinon).
 - URL surveillée : `PublicHttpUrl` (http/https, ports 80/443/8080/8443, pas d'IP privée ni de domaine interne).
 - Authentification, rôles et sessions : voir [securite.md](securite.md).
 - Compte désactivé : déconnecté à la requête suivante.
+
+## UptimeRobot
+
+| Route | Accès |
+|---|---|
+| `POST /sites/{site}/synchroniser` (`sites.sync`) | `sites.manage` — crée ou relit le moniteur |
+| `GET /admin/uptimerobot` | super administrateur |
+| `POST /admin/uptimerobot/test` | super administrateur, 6/min |
+| `POST /admin/uptimerobot/synchroniser` | super administrateur, 3/min |
+
+Détails : [uptimerobot.md](uptimerobot.md).

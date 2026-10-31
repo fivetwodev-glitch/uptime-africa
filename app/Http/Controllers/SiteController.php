@@ -10,6 +10,8 @@ use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Site;
 use App\Services\Monitoring\UptimeStats;
+use App\Services\UptimeRobot\UptimeRobotException;
+use App\Services\UptimeRobot\UptimeRobotMonitors;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -58,15 +60,24 @@ class SiteController extends Controller
         ]);
     }
 
-    public function store(SiteRequest $request): RedirectResponse
+    public function store(SiteRequest $request, UptimeRobotMonitors $uptimeRobot): RedirectResponse
     {
-        $site = new Site($request->validated());
+        $data = $request->validated();
+        $monitorId = $this->pullUptimeRobotId($data);
+
+        $site = new Site($data);
         $site->next_check_at = now();
         $site->save();
 
         AuditLog::record('site.created', $site, ['url' => $site->url]);
 
-        return redirect()->route('sites.show', $site)->with('status', 'Site ajouté. Il sera contrôlé dès que le moteur de surveillance sera actif.');
+        $redirect = redirect()->route('sites.show', $site);
+
+        if ($site->monitoring_provider === MonitoringProvider::UptimeRobot) {
+            return $this->linkUptimeRobot($redirect, $uptimeRobot, $site, $monitorId, 'Site ajouté.');
+        }
+
+        return $redirect->with('status', 'Site ajouté. Il sera contrôlé dès que le moteur de surveillance sera actif.');
     }
 
     public function show(Site $site, UptimeStats $stats): View
@@ -96,12 +107,27 @@ class SiteController extends Controller
         ]);
     }
 
-    public function update(SiteRequest $request, Site $site): RedirectResponse
+    public function update(SiteRequest $request, Site $site, UptimeRobotMonitors $uptimeRobot): RedirectResponse
     {
-        $site->fill($request->validated());
+        $data = $request->validated();
+        $monitorId = $this->pullUptimeRobotId($data);
+        $before = $site->replicate();
+        $wasUptimeRobot = $site->monitoring_provider === MonitoringProvider::UptimeRobot && $site->external_monitor_id !== null;
 
-        if ($site->monitoring_provider === MonitoringProvider::Internal) {
+        $site->fill($data);
+        $isUptimeRobot = $site->monitoring_provider === MonitoringProvider::UptimeRobot;
+
+        // Le lien est conservé si le moniteur reste le même et surveille toujours la bonne URL
+        // (un moniteur créé par nous suit le changement d'URL via PATCH).
+        $keepLink = $isUptimeRobot && $wasUptimeRobot
+            && ($monitorId === null || $monitorId === (int) $before->external_monitor_id)
+            && (! $site->isDirty('url') || $before->external_managed);
+
+        if ($site->monitoring_provider === MonitoringProvider::Internal || ($isUptimeRobot && ! $keepLink)) {
             $site->external_monitor_id = null;
+        }
+        if (! $keepLink) {
+            $site->external_managed = false;
         }
 
         $changes = array_keys($site->getDirty());
@@ -109,7 +135,50 @@ class SiteController extends Controller
 
         AuditLog::record('site.updated', $site, ['fields' => $changes]);
 
-        return redirect()->route('sites.show', $site)->with('status', 'Site mis à jour.');
+        $redirect = redirect()->route('sites.show', $site);
+        $response = null;
+
+        try {
+            if ($isUptimeRobot && ! $keepLink) {
+                $response = $this->linkUptimeRobot($redirect, $uptimeRobot, $site, $monitorId, 'Site mis à jour.');
+            } elseif ($keepLink && array_intersect($changes, ['name', 'url', 'interval_minutes', 'timeout_seconds'])) {
+                $uptimeRobot->pushSettings($site);
+            }
+
+            // Ancien moniteur créé par nous et plus utilisé : supprimé chez UptimeRobot.
+            if ($wasUptimeRobot && ! $keepLink && $before->external_managed) {
+                $uptimeRobot->deleteRemote($before);
+            }
+        } catch (UptimeRobotException $e) {
+            return $redirect->with('error', 'Site mis à jour, mais UptimeRobot n\'a pas pu être mis à jour : '.$e->getMessage());
+        }
+
+        if ($response) {
+            return $response;
+        }
+
+        return $redirect->with('status', 'Site mis à jour.');
+    }
+
+    /** Relance la création / l'association / la lecture du moniteur après un échec. */
+    public function sync(Site $site, UptimeRobotMonitors $uptimeRobot): RedirectResponse
+    {
+        $this->authorize('sites.manage');
+        abort_unless($site->monitoring_provider === MonitoringProvider::UptimeRobot, 404);
+
+        $redirect = back();
+
+        if ($site->external_monitor_id === null) {
+            return $this->linkUptimeRobot($redirect, $uptimeRobot, $site, null, '');
+        }
+
+        try {
+            $uptimeRobot->associate($site, (int) $site->external_monitor_id);
+        } catch (UptimeRobotException $e) {
+            return $redirect->with('error', 'Synchronisation UptimeRobot impossible : '.$e->getMessage());
+        }
+
+        return $redirect->with('status', 'Site synchronisé avec UptimeRobot.');
     }
 
     public function toggle(Site $site): RedirectResponse
@@ -128,6 +197,12 @@ class SiteController extends Controller
 
         AuditLog::record($site->monitoring_status === MonitoringStatus::Active ? 'site.resumed' : 'site.paused', $site);
 
+        try {
+            app(UptimeRobotMonitors::class)->applyMonitoringStatus($site);
+        } catch (UptimeRobotException $e) {
+            return back()->with('error', 'Statut changé ici, mais pas chez UptimeRobot : '.$e->getMessage());
+        }
+
         return back()->with('status', $site->monitoring_status === MonitoringStatus::Active ? 'Surveillance reprise.' : 'Surveillance mise en pause.');
     }
 
@@ -135,9 +210,41 @@ class SiteController extends Controller
     {
         $this->authorize('sites.manage');
 
+        // Le moniteur distant est supprimé d'abord : en cas d'échec, le site reste en place.
+        try {
+            app(UptimeRobotMonitors::class)->deleteRemote($site);
+        } catch (UptimeRobotException $e) {
+            return back()->with('error', 'Suppression annulée : le moniteur UptimeRobot n\'a pas pu être supprimé ('.$e->getMessage().').');
+        }
+
         AuditLog::record('site.deleted', $site, ['name' => $site->name, 'url' => $site->url]);
         $site->delete();
 
         return redirect()->route('sites.index')->with('status', 'Site supprimé, ainsi que son historique de contrôles et d\'incidents.');
+    }
+
+    /** Retire l'identifiant UptimeRobot saisi : il n'est enregistré qu'après vérification par l'API. */
+    private function pullUptimeRobotId(array &$data): ?int
+    {
+        if (($data['monitoring_provider'] ?? null) !== MonitoringProvider::UptimeRobot->value) {
+            return null;
+        }
+        $id = $data['external_monitor_id'] ?? null;
+        unset($data['external_monitor_id']);
+
+        return $id === null ? null : (int) $id;
+    }
+
+    private function linkUptimeRobot(RedirectResponse $redirect, UptimeRobotMonitors $uptimeRobot, Site $site, ?int $monitorId, string $prefix): RedirectResponse
+    {
+        try {
+            $monitorId === null ? $uptimeRobot->provision($site) : $uptimeRobot->associate($site, $monitorId);
+        } catch (UptimeRobotException $e) {
+            return $redirect->with('error', trim($prefix.' Le moniteur UptimeRobot n\'est pas synchronisé : '.$e->getMessage().' Vous pouvez relancer la synchronisation depuis la fiche du site.'));
+        }
+
+        $verb = $site->external_managed ? 'créé' : 'associé';
+
+        return $redirect->with('status', trim($prefix." Moniteur UptimeRobot n° {$site->external_monitor_id} {$verb} et synchronisé."));
     }
 }

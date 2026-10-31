@@ -86,10 +86,11 @@
                             <option value="{{ $option->value }}" @selected($provider === $option->value)>{{ $option->label() }}</option>
                         @endforeach
                     </select>
-                    <p class="hint">Un fournisseur externe nécessite l'identifiant de son moniteur.</p>
+                    <p class="hint">UptimeRobot : laissez l'identifiant vide pour créer le moniteur automatiquement. Autres fournisseurs : identifiant obligatoire.</p>
                 </div>
                 <div data-external-field @class(['hidden' => $provider === 'internal'])>
-                    <x-field name="external_monitor_id" label="Identifiant du moniteur externe" :value="$site->external_monitor_id" maxlength="100"/>
+                    <x-field name="external_monitor_id" label="Identifiant du moniteur externe" :value="$site->external_monitor_id" maxlength="100"
+                             hint="UptimeRobot : vide = création automatique ; un ID existant n'est associé que s'il surveille la même URL."/>
                 </div>
             </div>
         </fieldset>

@@ -44,8 +44,10 @@ class SiteRequest extends FormRequest
             'expected_status_codes.*' => ['integer', 'between:100,599'],
             'monitoring_provider' => ['required', Rule::enum(MonitoringProvider::class)],
             'external_monitor_id' => [
-                Rule::requiredIf(fn () => $this->input('monitoring_provider') !== MonitoringProvider::Internal->value),
+                // UptimeRobot : vide = moniteur créé automatiquement sur le compte central.
+                Rule::requiredIf(fn () => ! in_array($this->input('monitoring_provider'), [MonitoringProvider::Internal->value, MonitoringProvider::UptimeRobot->value], true)),
                 'nullable', 'string', 'max:100',
+                Rule::when($this->input('monitoring_provider') === MonitoringProvider::UptimeRobot->value, ['regex:/^\d{1,20}$/']),
                 Rule::unique('sites')->where('monitoring_provider', $this->input('monitoring_provider'))->ignore($this->route('site')),
             ],
         ];
@@ -86,6 +88,7 @@ class SiteRequest extends FormRequest
     {
         return [
             'external_monitor_id.required' => 'L\'identifiant du moniteur est obligatoire pour un fournisseur externe.',
+            'external_monitor_id.regex' => 'L\'identifiant d\'un moniteur UptimeRobot est un nombre.',
             'external_monitor_id.unique' => 'Ce moniteur externe est déjà rattaché à un site.',
             'interval_minutes.in' => 'Intervalle non autorisé (minimum :min minutes).',
         ];

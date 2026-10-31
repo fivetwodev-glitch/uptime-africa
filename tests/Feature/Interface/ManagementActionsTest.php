@@ -65,7 +65,7 @@ class ManagementActionsTest extends InterfaceTestCase
         $this->post(route('sites.store'), $this->validSite($client))->assertSessionHasNoErrors();
         $this->post(route('sites.store'), $this->validSite($client))->assertSessionHasErrors('url');
 
-        $this->post(route('sites.store'), $this->validSite($client, ['url' => 'https://autre.ci', 'monitoring_provider' => 'uptime_robot']))
+        $this->post(route('sites.store'), $this->validSite($client, ['url' => 'https://autre.ci', 'monitoring_provider' => 'better_stack']))
             ->assertSessionHasErrors('external_monitor_id');
         $this->post(route('sites.store'), $this->validSite($client, ['url' => 'https://autre.ci', 'interval_minutes' => 3]))
             ->assertSessionHasErrors('interval_minutes');

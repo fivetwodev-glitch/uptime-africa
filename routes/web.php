@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\UptimeRobotController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -36,11 +37,15 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
 
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.index');
     Route::patch('/admin/agences/{agency}/statut', [AdminController::class, 'toggleAgency'])->name('admin.agencies.toggle');
+    Route::get('/admin/uptimerobot', [UptimeRobotController::class, 'index'])->name('admin.uptimerobot');
+    Route::post('/admin/uptimerobot/test', [UptimeRobotController::class, 'test'])->middleware('throttle:6,1')->name('admin.uptimerobot.test');
+    Route::post('/admin/uptimerobot/synchroniser', [UptimeRobotController::class, 'sync'])->middleware('throttle:3,1')->name('admin.uptimerobot.sync');
 
     Route::middleware('agency')->group(function () {
         Route::get('/tableau-de-bord', DashboardController::class)->name('dashboard');
 
         Route::patch('/sites/{site}/surveillance', [SiteController::class, 'toggle'])->name('sites.toggle');
+        Route::post('/sites/{site}/synchroniser', [SiteController::class, 'sync'])->middleware('throttle:6,1')->name('sites.sync');
         Route::resource('sites', SiteController::class);
 
         Route::resource('clients', ClientController::class);

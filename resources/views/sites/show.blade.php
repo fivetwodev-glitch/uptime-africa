@@ -206,8 +206,13 @@
         <div><dt class="text-slate-500">Codes HTTP attendus</dt><dd class="font-medium text-night-900">{{ $site->expected_status_codes ? implode(', ', $site->expected_status_codes) : '2xx ou 3xx' }}</dd></div>
         <div><dt class="text-slate-500">Fournisseur</dt><dd class="font-medium text-night-900">{{ $site->monitoring_provider->label() }}</dd></div>
         @if ($site->monitoring_provider !== MonitoringProvider::Internal)
-            <div><dt class="text-slate-500">Moniteur externe</dt><dd class="font-medium text-night-900">{{ $site->external_monitor_id }}</dd></div>
-            <div><dt class="text-slate-500">Synchronisation</dt><dd class="font-medium text-night-900">{{ $site->sync_status->label() }}@if ($site->sync_error) <span class="block text-xs text-rose-600">{{ $site->sync_error }}</span>@endif</dd></div>
+            <div><dt class="text-slate-500">Moniteur externe</dt><dd class="font-medium text-night-900">{{ $site->external_monitor_id ?? 'Non associé' }}</dd></div>
+            <div><dt class="text-slate-500">Synchronisation</dt><dd class="font-medium text-night-900">{{ $site->sync_status->label() }}@if ($site->last_synced_at) <span class="block text-xs text-slate-500">Dernière : {{ \App\Support\Format::datetime($site->last_synced_at) }}</span>@endif @if ($site->sync_error) <span class="block text-xs text-rose-600">{{ $site->sync_error }}</span>@endif</dd></div>
+            @if ($site->monitoring_provider === MonitoringProvider::UptimeRobot)
+                @can('sites.manage')
+                    <div class="self-end"><form method="POST" action="{{ route('sites.sync', $site) }}">@csrf<button type="submit" class="btn-secondary btn-sm">{{ $site->external_monitor_id ? 'Synchroniser avec UptimeRobot' : 'Créer le moniteur UptimeRobot' }}</button></form></div>
+                @endcan
+            @endif
         @endif
         <div><dt class="text-slate-500">Ajouté le</dt><dd class="font-medium text-night-900">{{ Format::datetime($site->created_at) }}</dd></div>
     </dl>

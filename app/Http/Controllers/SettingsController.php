@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\MonitoringProvider;
 use App\Models\AuditLog;
+use App\Models\Site;
+use App\Services\UptimeRobot\UptimeRobotClient;
 use App\Support\Sessions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +33,9 @@ class SettingsController extends Controller
             'user' => $user,
             'agency' => $user->agency,
             'timezones' => self::TIMEZONES,
+            'uptimeRobotConfigured' => app(UptimeRobotClient::class)->isConfigured(),
+            'uptimeRobotSites' => Site::where('monitoring_provider', MonitoringProvider::UptimeRobot)
+                ->toBase()->selectRaw('sync_status, count(*) as total')->groupBy('sync_status')->pluck('total', 'sync_status'),
         ]);
     }
 
