@@ -3,11 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ChannelType;
+use App\Enums\NotificationEvent;
 use App\Enums\NotificationStatus;
 use App\Models\AuditLog;
 use App\Models\NotificationChannel;
 use App\Models\NotificationLog;
 use App\Models\NotificationPreference;
+use App\Services\Notifications\ChannelSender;
+use App\Services\Notifications\NotificationDispatcher;
+use App\Services\Notifications\NotificationSettings;
+use App\Services\Notifications\WhatsAppClient;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +29,8 @@ class NotificationController extends Controller
         $filters = $request->validate([
             'onglet' => ['nullable', Rule::in(['canaux', 'journal'])],
             'statut' => ['nullable', Rule::enum(NotificationStatus::class)],
+            'canal' => ['nullable', Rule::enum(ChannelType::class)],
+            'evenement' => ['nullable', Rule::enum(NotificationEvent::class)],
         ]);
 
         $tab = $filters['onglet'] ?? 'canaux';
@@ -35,9 +42,12 @@ class NotificationController extends Controller
             'logs' => $tab === 'journal'
                 ? NotificationLog::with('site:id,name')
                     ->when($filters['statut'] ?? null, fn ($q, $s) => $q->where('status', $s))
+                    ->when($filters['canal'] ?? null, fn ($q, $c) => $q->where('channel_type', $c))
+                    ->when($filters['evenement'] ?? null, fn ($q, $e) => $q->where('event', $e))
                     ->latest()->paginate(30)->withQueryString()
                 : null,
-            'whatsappEnabled' => (bool) config('uptime.whatsapp.enabled'),
+            'whatsappConfigured' => app(WhatsAppClient::class)->isConfigured(),
+            'settings' => NotificationSettings::for(app(TenantContext::class)->id()),
         ]);
     }
 
@@ -79,6 +89,8 @@ class NotificationController extends Controller
         $data = $request->validate([
             'notify_on_down' => ['boolean'],
             'notify_on_recovery' => ['boolean'],
+            'notify_on_prolonged' => ['boolean'],
+            'prolonged_after_minutes' => ['nullable', 'integer', Rule::in(config('uptime.notifications.prolonged_choices'))],
             'delay_minutes' => ['required', 'integer', 'between:0,120'],
         ], [], ['delay_minutes' => 'délai avant alerte']);
 
@@ -87,6 +99,8 @@ class NotificationController extends Controller
             [
                 'notify_on_down' => $request->boolean('notify_on_down'),
                 'notify_on_recovery' => $request->boolean('notify_on_recovery'),
+                'notify_on_prolonged' => $request->boolean('notify_on_prolonged'),
+                'prolonged_after_minutes' => $data['prolonged_after_minutes'] ?? 30,
                 'delay_minutes' => $data['delay_minutes'],
             ],
         );
@@ -94,6 +108,41 @@ class NotificationController extends Controller
         AuditLog::record('notification_preference.updated', $channel);
 
         return back()->with('status', 'Préférences enregistrées.');
+    }
+
+    public function updateSettings(Request $request, TenantContext $tenant): RedirectResponse
+    {
+        $this->authorize('notifications.manage');
+
+        $data = $request->validate([
+            'enabled' => ['boolean'],
+            'email' => ['boolean'],
+            'whatsapp' => ['boolean'],
+            'digest' => ['required', Rule::in(array_keys(NotificationSettings::DIGEST_CHOICES))],
+        ]);
+
+        $settings = [
+            'enabled' => $request->boolean('enabled'),
+            'channels' => ['email' => $request->boolean('email'), 'whatsapp' => $request->boolean('whatsapp')],
+            'digest' => $data['digest'],
+        ];
+        NotificationSettings::save($tenant->id(), $settings);
+        AuditLog::record('notification_settings.updated', null, $settings);
+
+        return back()->with('status', 'Paramètres de notification enregistrés.');
+    }
+
+    /** Envoi réel d'un message de test ; le résultat (identifiant ou erreur) est affiché et journalisé. */
+    public function test(NotificationChannel $channel, NotificationDispatcher $dispatcher, ChannelSender $sender): RedirectResponse
+    {
+        $this->authorize('notifications.manage');
+
+        $log = $dispatcher->test($channel, $sender);
+        AuditLog::record('notification_channel.tested', $channel, ['status' => $log->status->value]);
+
+        return $log->status->isSuccessful()
+            ? back()->with('status', "Message de test envoyé à {$channel->destination}".($log->provider_message_id ? " (identifiant : {$log->provider_message_id})." : '.').($channel->type === ChannelType::WhatsApp ? ' La remise sera confirmée dans le journal.' : ''))
+            : back()->with('error', "Échec du test vers {$channel->destination} : ".($log->error_message ?? 'erreur inconnue'));
     }
 
     public function toggle(NotificationChannel $channel): RedirectResponse

@@ -16,11 +16,12 @@ class UptimeStats
     /**
      * @return array{total:int, up:int, uptime:?float, avg_ms:?int}
      */
-    public function summary(Carbon $since, ?string $siteId = null): array
+    public function summary(Carbon $since, ?string $siteId = null, ?Carbon $until = null): array
     {
         $row = Check::query()
             ->when($siteId, fn ($q) => $q->where('site_id', $siteId))
             ->where('checked_at', '>=', $since)
+            ->when($until, fn ($q) => $q->where('checked_at', '<', $until))
             // Les vérifications « inconnues » (API muette, pause) ne comptent ni pour ni contre la disponibilité.
             ->whereNotNull('is_up')
             ->selectRaw('count(*) as total, sum(case when is_up then 1 else 0 end) as up_count, avg(case when is_up then response_time_ms end) as avg_ms')

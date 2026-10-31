@@ -16,6 +16,7 @@ class NotificationLog extends Model
     protected $fillable = [
         'site_id', 'incident_id', 'notification_channel_id', 'channel_type', 'recipient',
         'event', 'status', 'attempts', 'provider_message_id', 'error_message', 'sent_at',
+        'dedup_key', 'template', 'provider', 'delivered_at', 'read_at',
     ];
 
     protected $attributes = [
@@ -30,6 +31,8 @@ class NotificationLog extends Model
             'event' => NotificationEvent::class,
             'status' => NotificationStatus::class,
             'sent_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'read_at' => 'datetime',
         ];
     }
 

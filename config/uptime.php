@@ -42,11 +42,35 @@ return [
         'max_time_seconds' => (int) env('QUEUE_MAX_TIME', 50),
     ],
 
+    /*
+    | WhatsApp Business Platform — Cloud API officielle de Meta (graph.facebook.com).
+    | Identifiants UNIQUEMENT dans l'environnement du serveur. Les messages d'alerte
+    | sont des modèles (templates) approuvés dans WhatsApp Manager, catégorie « utility ».
+    */
     'whatsapp' => [
         'enabled' => (bool) env('WHATSAPP_ENABLED', false),
-        'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v23.0'),
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'timeout_seconds' => 15,
+        // Webhook de statut (remise, lecture, échec).
+        'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+        'app_secret' => env('WHATSAPP_APP_SECRET'),
+        'language' => env('WHATSAPP_TEMPLATE_LANGUAGE', 'fr'),
+        // Noms des modèles approuvés et nombre de variables {{1}}… attendues, dans l'ordre.
+        'templates' => [
+            'incident_opened' => env('WHATSAPP_TEMPLATE_DOWN', 'uptime_africa_panne'),
+            'incident_resolved' => env('WHATSAPP_TEMPLATE_RECOVERY', 'uptime_africa_retour'),
+            'incident_prolonged' => env('WHATSAPP_TEMPLATE_PROLONGED', 'uptime_africa_panne_prolongee'),
+            'test_message' => env('WHATSAPP_TEMPLATE_TEST', 'uptime_africa_test'),
+        ],
+    ],
+
+    'notifications' => [
+        // Seuils proposés pour « incident prolongé » (minutes).
+        'prolonged_choices' => [15, 30, 60, 120, 240],
+        // Heure locale (agence) d'envoi des résumés.
+        'digest_hour' => 7,
     ],
 
     /*

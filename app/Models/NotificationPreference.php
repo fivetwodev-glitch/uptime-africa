@@ -12,7 +12,7 @@ class NotificationPreference extends Model
 
     protected $fillable = [
         'notification_channel_id', 'site_id', 'notify_on_down', 'notify_on_recovery',
-        'delay_minutes', 'is_active',
+        'delay_minutes', 'is_active', 'notify_on_prolonged', 'prolonged_after_minutes',
     ];
 
     protected function casts(): array
@@ -20,6 +20,7 @@ class NotificationPreference extends Model
         return [
             'notify_on_down' => 'boolean',
             'notify_on_recovery' => 'boolean',
+            'notify_on_prolonged' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

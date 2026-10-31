@@ -16,10 +16,18 @@ use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\SyncTriggerController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\WhatsAppWebhookController;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'home')->name('home');
+
+// Webhook de statut WhatsApp Cloud API (vérification par jeton, contenu signé par Meta).
+Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->middleware('throttle:whatsapp-webhook');
+Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])
+    ->middleware('throttle:whatsapp-webhook')
+    ->withoutMiddleware(ValidateCsrfToken::class)
+    ->name('webhooks.whatsapp');
 
 // Déclencheur externe protégé par jeton (alternative au cron Hostinger). Désactivé sans UPTIME_SYNC_TRIGGER_TOKEN.
 Route::post('/declencheur/synchronisation', SyncTriggerController::class)
@@ -70,6 +78,8 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         Route::put('/notifications/canaux/{channel}/preferences', [NotificationController::class, 'updatePreference'])->name('notifications.channels.preferences');
         Route::patch('/notifications/canaux/{channel}', [NotificationController::class, 'toggle'])->name('notifications.channels.toggle');
         Route::delete('/notifications/canaux/{channel}', [NotificationController::class, 'destroy'])->name('notifications.channels.destroy');
+        Route::post('/notifications/canaux/{channel}/test', [NotificationController::class, 'test'])->middleware('throttle:notification-test')->name('notifications.channels.test');
+        Route::put('/notifications/parametres', [NotificationController::class, 'updateSettings'])->name('notifications.settings');
 
         Route::get('/abonnement', SubscriptionController::class)->name('subscription.show');
 
