@@ -26,3 +26,7 @@ Schedule::command('queue:prune-failed --hours=168')->daily();
 if (config('uptime.uptimerobot.api_key')) {
     Schedule::command('uptimerobot:sync')->everyMinute()->withoutOverlapping(10);
 }
+
+// Notifications : incidents prolongés (toutes les 5 min) et résumés périodiques (chaque heure, envoi à 7 h locale).
+Schedule::command('notifications:prolonged')->everyFiveMinutes()->withoutOverlapping(10);
+Schedule::command('notifications:digest')->hourlyAt(2)->withoutOverlapping(30);

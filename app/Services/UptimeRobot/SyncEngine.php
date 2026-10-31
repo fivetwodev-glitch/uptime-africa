@@ -13,6 +13,7 @@ use App\Enums\SyncStatus;
 use App\Models\Check;
 use App\Models\Incident;
 use App\Models\Site;
+use App\Services\Notifications\NotificationDispatcher;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -221,6 +222,7 @@ class SyncEngine
             // La durée est calculée par le modèle (resolved_at - started_at).
             $open->resolve($checkedAt->lessThan($open->started_at) ? $open->started_at : $checkedAt);
             $this->resolvedThisRun++;
+            DB::afterCommit(fn () => $this->notify(fn (NotificationDispatcher $d) => $d->incidentResolved($open)));
         }
     }
 
@@ -259,6 +261,17 @@ class SyncEngine
         $incident->agency_id = $site->agency_id;
         $incident->save();
         $this->openedThisRun++;
+        DB::afterCommit(fn () => $this->notify(fn (NotificationDispatcher $d) => $d->incidentOpened($incident)));
+    }
+
+    /** Une erreur de notification ne doit jamais faire échouer la synchronisation. */
+    private function notify(callable $send): void
+    {
+        try {
+            $send(app(NotificationDispatcher::class));
+        } catch (Throwable $e) {
+            Log::error('Notifications : planification impossible.', ['error' => $e->getMessage()]);
+        }
     }
 
     /** Début de la panne = première vérification en échec depuis le dernier succès. */

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\Notifications\WhatsAppClient;
 use App\Services\UptimeRobot\UptimeRobotClient;
 use App\Support\TenantContext;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -25,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
 
         // La clé API n'est lue que depuis la configuration (variable d'environnement).
         $this->app->bind(UptimeRobotClient::class, fn () => UptimeRobotClient::fromConfig());
+        $this->app->bind(WhatsAppClient::class, fn () => WhatsAppClient::fromConfig());
     }
 
     public function boot(): void
@@ -50,6 +52,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Anti force brute : par compte + IP, par IP, et par compte toutes IP confondues.
+        RateLimiter::for('notification-test', fn (Request $request) => Limit::perMinute(3)->by('notif-test:'.$request->user()?->id));
+        RateLimiter::for('whatsapp-webhook', fn (Request $request) => Limit::perMinute(600)->by('wa-hook:'.$request->ip()));
+
         RateLimiter::for('sync-trigger', fn (Request $request) => Limit::perMinute(4)->by('sync-trigger:'.$request->ip()));
 
         RateLimiter::for('login', fn (Request $request) => [
