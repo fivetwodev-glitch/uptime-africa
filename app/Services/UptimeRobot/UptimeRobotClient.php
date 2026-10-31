@@ -107,6 +107,26 @@ class UptimeRobotClient
         return $this->send('patch', "/monitors/{$id}", $fields);
     }
 
+    /**
+     * GET /monitors/{id}/stats/response-time (MonitorResponseTimeStatsDto).
+     * Renvoie la dernière valeur de time_series (ms), ou null si aucune mesure sur la période.
+     */
+    public function latestResponseTime(int $id, \DateTimeInterface $from): ?int
+    {
+        $stats = $this->send('get', "/monitors/{$id}/stats/response-time", [
+            'from' => $from->format('Y-m-d\TH:i:s\Z'),
+            'includeTimeSeries' => 'true',
+        ]);
+
+        $series = is_array($stats['time_series'] ?? null) ? $stats['time_series'] : [];
+        $last = end($series);
+        if (is_array($last) && is_numeric($last['value'] ?? null)) {
+            return (int) round($last['value']);
+        }
+
+        return null;
+    }
+
     /** POST /monitors/{id}/pause */
     public function pauseMonitor(int $id): array
     {

@@ -21,6 +21,8 @@ class UptimeStats
         $row = Check::query()
             ->when($siteId, fn ($q) => $q->where('site_id', $siteId))
             ->where('checked_at', '>=', $since)
+            // Les vérifications « inconnues » (API muette, pause) ne comptent ni pour ni contre la disponibilité.
+            ->whereNotNull('is_up')
             ->selectRaw('count(*) as total, sum(case when is_up then 1 else 0 end) as up_count, avg(case when is_up then response_time_ms end) as avg_ms')
             ->toBase()
             ->first();
@@ -47,6 +49,7 @@ class UptimeStats
         $rows = Check::query()
             ->where('site_id', $siteId)
             ->where('checked_at', '>=', $since)
+            ->whereNotNull('is_up')
             ->get(['checked_at', 'is_up'])
             ->groupBy(fn (Check $check) => $check->checked_at->toDateString());
 

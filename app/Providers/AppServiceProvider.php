@@ -50,6 +50,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Anti force brute : par compte + IP, par IP, et par compte toutes IP confondues.
+        RateLimiter::for('sync-trigger', fn (Request $request) => Limit::perMinute(4)->by('sync-trigger:'.$request->ip()));
+
         RateLimiter::for('login', fn (Request $request) => [
             Limit::perMinute(5)->by('login:'.mb_strtolower((string) $request->input('email')).'|'.$request->ip()),
             Limit::perMinute(20)->by('login-ip:'.$request->ip()),

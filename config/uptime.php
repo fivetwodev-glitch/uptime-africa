@@ -64,7 +64,16 @@ return [
         // Taille de page de GET /monitors (doc : 1 à 200).
         'page_size' => 200,
         // Fréquence de synchronisation des statuts (minutes).
-        'sync_every_minutes' => (int) env('UPTIMEROBOT_SYNC_EVERY', 5),
+        // Plancher 1 min ; UptimeRobot ne contrôle pas plus souvent que l'intervalle du moniteur (5 min en plan gratuit).
+        'sync_every_minutes' => max(1, (int) env('UPTIMEROBOT_SYNC_EVERY', 5)),
+        // Règle d'incident : jamais moins de 2 échecs consécutifs confirmés.
+        'failures_before_incident' => max(2, (int) env('UPTIME_FAILURES_BEFORE_INCIDENT', 2)),
+        // Temps de réponse : 1 requête par site, plafonné par passage et par la limite restante.
+        'response_times_per_run' => max(0, (int) env('UPTIMEROBOT_RESPONSE_TIMES_PER_RUN', 3)),
+        'keep_requests_in_reserve' => 2,
+        'lock_seconds' => 600,
+        // Déclenchement externe (si le cron Hostinger n'est pas disponible) : jeton d'au moins 32 caractères.
+        'trigger_token' => env('UPTIME_SYNC_TRIGGER_TOKEN'),
     ],
 
     'super_admin' => [

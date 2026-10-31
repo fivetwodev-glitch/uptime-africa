@@ -14,10 +14,18 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\SyncTriggerController;
 use App\Http\Controllers\TeamController;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'home')->name('home');
+
+// Déclencheur externe protégé par jeton (alternative au cron Hostinger). Désactivé sans UPTIME_SYNC_TRIGGER_TOKEN.
+Route::post('/declencheur/synchronisation', SyncTriggerController::class)
+    ->middleware('throttle:sync-trigger')
+    ->withoutMiddleware(ValidateCsrfToken::class)
+    ->name('sync.trigger');
 
 Route::middleware('guest')->group(function () {
     Route::get('/connexion', [LoginController::class, 'create'])->name('login');
@@ -45,6 +53,7 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
         Route::get('/tableau-de-bord', DashboardController::class)->name('dashboard');
 
         Route::patch('/sites/{site}/surveillance', [SiteController::class, 'toggle'])->name('sites.toggle');
+        Route::post('/sites/synchroniser', [SiteController::class, 'syncAll'])->middleware('throttle:2,1')->name('sites.sync-all');
         Route::post('/sites/{site}/synchroniser', [SiteController::class, 'sync'])->middleware('throttle:6,1')->name('sites.sync');
         Route::resource('sites', SiteController::class);
 

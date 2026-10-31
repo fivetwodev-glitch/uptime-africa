@@ -16,7 +16,7 @@ class CheckController extends Controller
     {
         $filters = $request->validate([
             'site' => ['nullable', 'string', 'max:26'],
-            'resultat' => ['nullable', Rule::in(['succes', 'echec'])],
+            'resultat' => ['nullable', Rule::in(['succes', 'echec', 'inconnu'])],
             'periode' => ['nullable', Rule::in(array_keys(self::PERIODS))],
         ]);
 
@@ -28,6 +28,7 @@ class CheckController extends Controller
             ->when($filters['site'] ?? null, fn ($q, $s) => $q->where('site_id', $s))
             ->when(($filters['resultat'] ?? null) === 'succes', fn ($q) => $q->where('is_up', true))
             ->when(($filters['resultat'] ?? null) === 'echec', fn ($q) => $q->where('is_up', false))
+            ->when(($filters['resultat'] ?? null) === 'inconnu', fn ($q) => $q->whereNull('is_up'))
             ->latest('checked_at')
             ->paginate(50)
             ->withQueryString();

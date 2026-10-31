@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Services\UptimeRobot\SyncEngine;
+use App\Services\UptimeRobot\SyncReport;
 use App\Services\UptimeRobot\UptimeRobotClient;
 use App\Services\UptimeRobot\UptimeRobotException;
 use App\Services\UptimeRobot\UptimeRobotMonitors;
@@ -60,16 +62,12 @@ class UptimeRobotController extends Controller
         ]);
     }
 
-    public function sync(UptimeRobotMonitors $monitors): RedirectResponse
+    public function sync(SyncEngine $engine): RedirectResponse
     {
         $this->authorize('admin.access');
 
-        try {
-            $stats = $monitors->synchronize();
-        } catch (UptimeRobotException $e) {
-            return back()->with('error', 'Synchronisation interrompue : '.$e->getMessage());
-        }
+        $report = $engine->run(force: true, trigger: 'manual');
 
-        return back()->with('status', "Synchronisation terminée : {$stats['monitors']} moniteur(s), {$stats['updated']} site(s) mis à jour, {$stats['missing']} introuvable(s).");
+        return back()->with($report['status'] === 'ok' ? 'status' : 'error', SyncReport::summary($report));
     }
 }

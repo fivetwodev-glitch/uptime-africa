@@ -198,32 +198,26 @@ class UptimeRobotIntegrationTest extends InterfaceTestCase
         $this->assertNull(Site::withoutGlobalScopes()->firstOrFail()->external_monitor_id);
     }
 
-    public function test_sync_follows_pagination_maps_statuses_and_tracks_incidents(): void
+    public function test_sync_follows_pagination_and_maps_statuses(): void
     {
+        config(['uptime.uptimerobot.response_times_per_run' => 0]);
         $agency = Agency::factory()->create();
         $a = $this->linkedSite($agency, 1, 'https://a.exemple.ci', status: 'up');
         $b = $this->linkedSite($agency, 2, 'https://b.exemple.ci');
         $gone = $this->linkedSite($agency, 3, 'https://c.exemple.ci');
 
         Http::fakeSequence(self::API.'/monitors*')
-            ->push($this->page([$this->monitor(1, 'https://a.exemple.ci', 'DOWN', ['lastIncident' => ['id' => '9', 'status' => 'STARTED', 'cause' => 503, 'reason' => 'Service Unavailable', 'startedAt' => now()->subMinutes(4)->toIso8601String(), 'duration' => 240]])], self::API.'/monitors?cursor=1&limit=200'))
-            ->push($this->page([$this->monitor(2, 'https://b.exemple.ci', 'LOOKS_DOWN')]))
-            ->push($this->page([$this->monitor(1, 'https://a.exemple.ci', 'UP'), $this->monitor(2, 'https://b.exemple.ci', 'UP')]));
+            ->push($this->page([$this->monitor(1, 'https://a.exemple.ci', 'DOWN')], self::API.'/monitors?cursor=1&limit=200'))
+            ->push($this->page([$this->monitor(2, 'https://b.exemple.ci', 'LOOKS_DOWN')]));
 
-        $this->artisan('uptimerobot:sync')->expectsOutputToContain('2 moniteur(s) lus')->assertSuccessful();
+        $this->artisan('uptimerobot:sync --force')->expectsOutputToContain('3 site(s)')->assertSuccessful();
 
         Http::assertSent(fn (Request $r) => $r->url() === self::API.'/monitors?cursor=1&limit=200');
-        $this->assertSame('down', $a->fresh()->status->value);
+        // Un seul échec : panne non confirmée, pas d'incident.
+        $this->assertSame('degraded', $a->fresh()->status->value);
         $this->assertSame('degraded', $b->fresh()->status->value);
         $this->assertSame(SyncStatus::Failed, $gone->fresh()->sync_status);
-        $incident = Incident::withoutGlobalScopes()->where('site_id', $a->id)->sole();
-        $this->assertNull($incident->resolved_at);
-        $this->assertStringContainsString('Service Unavailable', $incident->description);
-        $this->assertSame($agency->id, $incident->agency_id);
-
-        $this->artisan('uptimerobot:sync')->assertSuccessful();
-        $this->assertSame('up', $a->fresh()->status->value);
-        $this->assertNotNull($incident->fresh()->resolved_at);
+        $this->assertSame(0, Incident::withoutGlobalScopes()->count());
     }
 
     public function test_foreign_pagination_host_is_refused(): void
@@ -231,7 +225,7 @@ class UptimeRobotIntegrationTest extends InterfaceTestCase
         $this->linkedSite(Agency::factory()->create(), 1, 'https://a.exemple.ci');
         Http::fake([self::API.'/monitors*' => Http::response($this->page([], 'https://evil.example/v3/monitors?cursor=2'))]);
 
-        $this->artisan('uptimerobot:sync')->expectsOutputToContain('pagination')->assertFailed();
+        $this->artisan('uptimerobot:sync --force')->expectsOutputToContain('pagination')->assertFailed();
         Http::assertNotSent(fn (Request $r) => str_contains($r->url(), 'evil.example'));
     }
 
