@@ -55,7 +55,8 @@
             <div class="space-y-4 p-5 text-sm sm:p-6">
                 @if ($lastSync)
                     <p>Dernière synchronisation : <strong class="text-night-900">{{ \App\Support\Format::datetime(\Illuminate\Support\Carbon::parse($lastSync['at'])) }}</strong></p>
-                    <p class="text-slate-600">{{ $lastSync['monitors'] }} moniteur(s) lus · {{ $lastSync['updated'] }} site(s) mis à jour · {{ $lastSync['missing'] }} introuvable(s)</p>
+                    <p class="text-slate-600">{{ \App\Services\UptimeRobot\SyncReport::summary($lastSync) }}</p>
+                    <p class="hint">Déclencheur : {{ $lastSync['trigger'] ?? '—' }} · durée {{ $lastSync['duration_ms'] ?? '—' }} ms · {{ $lastSync['monitors'] ?? 0 }} moniteur(s) lus</p>
                 @else
                     <p class="text-slate-600">Aucune synchronisation effectuée.</p>
                 @endif

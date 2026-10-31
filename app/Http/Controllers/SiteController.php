@@ -10,8 +10,11 @@ use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Site;
 use App\Services\Monitoring\UptimeStats;
+use App\Services\UptimeRobot\SyncEngine;
+use App\Services\UptimeRobot\SyncReport;
 use App\Services\UptimeRobot\UptimeRobotException;
 use App\Services\UptimeRobot\UptimeRobotMonitors;
+use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -46,6 +49,7 @@ class SiteController extends Controller
             'filters' => $filters,
             'clients' => Client::orderBy('name')->get(['id', 'name']),
             'hasAnySite' => $sites->total() > 0 || Site::exists(),
+            'hasUptimeRobotSites' => Site::where('monitoring_provider', MonitoringProvider::UptimeRobot)->whereNotNull('external_monitor_id')->exists(),
         ]);
     }
 
@@ -160,25 +164,29 @@ class SiteController extends Controller
         return $redirect->with('status', 'Site mis à jour.');
     }
 
-    /** Relance la création / l'association / la lecture du moniteur après un échec. */
-    public function sync(Site $site, UptimeRobotMonitors $uptimeRobot): RedirectResponse
+    /** Synchronisation manuelle d'un site : crée/associe le moniteur s'il manque, sinon relit son statut. */
+    public function sync(Site $site, UptimeRobotMonitors $uptimeRobot, SyncEngine $engine): RedirectResponse
     {
         $this->authorize('sites.manage');
         abort_unless($site->monitoring_provider === MonitoringProvider::UptimeRobot, 404);
 
-        $redirect = back();
-
         if ($site->external_monitor_id === null) {
-            return $this->linkUptimeRobot($redirect, $uptimeRobot, $site, null, '');
+            return $this->linkUptimeRobot(back(), $uptimeRobot, $site, null, '');
         }
 
-        try {
-            $uptimeRobot->associate($site, (int) $site->external_monitor_id);
-        } catch (UptimeRobotException $e) {
-            return $redirect->with('error', 'Synchronisation UptimeRobot impossible : '.$e->getMessage());
-        }
+        $report = $engine->runForSite($site);
 
-        return $redirect->with('status', 'Site synchronisé avec UptimeRobot.');
+        return back()->with($report['status'] === 'ok' ? 'status' : 'error', SyncReport::summary($report));
+    }
+
+    /** Synchronisation manuelle de tous les sites UptimeRobot de l'agence. */
+    public function syncAll(SyncEngine $engine, TenantContext $tenant): RedirectResponse
+    {
+        $this->authorize('sites.manage');
+
+        $report = $engine->run($tenant->id(), force: true, trigger: 'manual');
+
+        return back()->with($report['status'] === 'ok' ? 'status' : 'error', SyncReport::summary($report));
     }
 
     public function toggle(Site $site): RedirectResponse

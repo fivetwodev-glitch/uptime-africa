@@ -27,6 +27,7 @@
                 <option value="">Tous les résultats</option>
                 <option value="succes" @selected(($filters['resultat'] ?? null) === 'succes')>Succès</option>
                 <option value="echec" @selected(($filters['resultat'] ?? null) === 'echec')>Échecs</option>
+                <option value="inconnu" @selected(($filters['resultat'] ?? null) === 'inconnu')>Inconnus (API, pause)</option>
             </select>
             <label class="sr-only" for="periode">Période</label>
             <select id="periode" name="periode" class="input" data-autosubmit>

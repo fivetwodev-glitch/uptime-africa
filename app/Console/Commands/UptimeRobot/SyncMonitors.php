@@ -2,28 +2,31 @@
 
 namespace App\Console\Commands\UptimeRobot;
 
-use App\Services\UptimeRobot\UptimeRobotException;
-use App\Services\UptimeRobot\UptimeRobotMonitors;
+use App\Services\UptimeRobot\SyncEngine;
+use App\Services\UptimeRobot\SyncReport;
 use Illuminate\Console\Command;
 
 class SyncMonitors extends Command
 {
-    protected $signature = 'uptimerobot:sync';
+    protected $signature = 'uptimerobot:sync {--force : ignorer l\'espacement minimal entre deux passages}';
 
-    protected $description = 'Récupère les statuts des moniteurs UptimeRobot et met à jour les sites liés';
+    protected $description = 'Récupère les statuts UptimeRobot, enregistre les vérifications et gère les incidents';
 
-    public function handle(UptimeRobotMonitors $monitors): int
+    public function handle(SyncEngine $engine): int
     {
-        try {
-            $stats = $monitors->synchronize();
-        } catch (UptimeRobotException $e) {
-            $this->error('Synchronisation interrompue : '.$e->getMessage());
+        $report = $engine->run(force: (bool) $this->option('force'), trigger: 'cron');
 
-            return self::FAILURE;
+        if ($report['status'] === 'skipped') {
+            $this->line('Passage ignoré : '.match ($report['reason'] ?? '') {
+                'not_due' => 'prochain passage pas encore dû (UPTIMEROBOT_SYNC_EVERY).',
+                default => $report['message'] ?? $report['reason'] ?? '',
+            });
+
+            return ($report['reason'] ?? '') === 'not_configured' ? self::FAILURE : self::SUCCESS;
         }
 
-        $this->info("{$stats['monitors']} moniteur(s) lus, {$stats['updated']} site(s) mis à jour, {$stats['missing']} moniteur(s) introuvable(s).");
+        $this->line(SyncReport::summary($report));
 
-        return self::SUCCESS;
+        return $report['status'] === 'ok' ? self::SUCCESS : self::FAILURE;
     }
 }

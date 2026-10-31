@@ -2,8 +2,6 @@
 
 namespace App\Services\UptimeRobot;
 
-use App\Enums\IncidentStatus;
-use App\Enums\IncidentType;
 use App\Enums\MonitoringProvider;
 use App\Enums\MonitoringStatus;
 use App\Enums\SiteStatus;
@@ -11,9 +9,6 @@ use App\Enums\SyncStatus;
 use App\Models\AuditLog;
 use App\Models\Incident;
 use App\Models\Site;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -26,13 +21,14 @@ use Throwable;
  */
 class UptimeRobotMonitors
 {
-    public const LAST_SYNC_CACHE_KEY = 'uptimerobot:last_sync';
+    public const LAST_SYNC_CACHE_KEY = SyncEngine::LAST_RUN_KEY;
 
-    /** Statuts documentés (GET /monitors, paramètre status) → statut local. */
+    /**
+     * Statut local à la liaison / pause / reprise. DOWN n'est pas repris ici :
+     * seul le moteur de synchronisation (règle des échecs consécutifs) peut déclarer une panne.
+     */
     private const STATUS_MAP = [
         'UP' => SiteStatus::Up,
-        'DOWN' => SiteStatus::Down,
-        'LOOKS_DOWN' => SiteStatus::Degraded,
         'STARTED' => SiteStatus::Unknown,
     ];
 
@@ -164,49 +160,6 @@ class UptimeRobotMonitors
         }
     }
 
-    /**
-     * Récupère tous les moniteurs (pagination nextLink) et met à jour les sites liés.
-     *
-     * @return array{monitors:int, sites:int, updated:int, missing:int, at:string}
-     */
-    public function synchronize(): array
-    {
-        $monitors = [];
-        foreach ($this->client->monitors() as $monitor) {
-            if (isset($monitor['id'])) {
-                $monitors[(string) $monitor['id']] = $monitor;
-            }
-        }
-
-        $stats = ['monitors' => count($monitors), 'sites' => 0, 'updated' => 0, 'missing' => 0];
-
-        Site::withoutGlobalScopes()
-            ->where('monitoring_provider', MonitoringProvider::UptimeRobot)
-            ->whereNotNull('external_monitor_id')
-            ->chunkById(200, function ($sites) use ($monitors, &$stats) {
-                foreach ($sites as $site) {
-                    $stats['sites']++;
-                    $monitor = $monitors[$site->external_monitor_id] ?? null;
-
-                    if ($monitor === null) {
-                        $stats['missing']++;
-                        $this->markFailed($site, 'Moniteur introuvable dans le compte UptimeRobot (supprimé ?).');
-
-                        continue;
-                    }
-
-                    $this->apply($site, $monitor);
-                    $stats['updated']++;
-                }
-            });
-
-        $stats['at'] = now()->toIso8601String();
-        Cache::forever(self::LAST_SYNC_CACHE_KEY, $stats);
-        Log::info('Synchronisation UptimeRobot terminée', $stats);
-
-        return $stats;
-    }
-
     /** Liste des moniteurs du compte avec le site local lié (super administrateur uniquement). */
     public function overview(): array
     {
@@ -222,11 +175,10 @@ class UptimeRobotMonitors
         return $rows;
     }
 
-    /** Met à jour les données locales d'un site à partir d'un MonitorDto. */
+    /** Met à jour l'état de liaison d'un site à partir d'un MonitorDto (sans vérification ni incident). */
     public function apply(Site $site, array $monitor): void
     {
         $remoteStatus = strtoupper((string) ($monitor['status'] ?? ''));
-        $previous = $site->status;
 
         if (isset(self::STATUS_MAP[$remoteStatus])) {
             $site->status = self::STATUS_MAP[$remoteStatus];
@@ -238,32 +190,6 @@ class UptimeRobotMonitors
             : null;
         $site->last_synced_at = now();
         $site->saveQuietly();
-
-        $this->trackIncident($site, $previous, $monitor);
-    }
-
-    private function trackIncident(Site $site, SiteStatus $previous, array $monitor): void
-    {
-        $open = Incident::withoutGlobalScopes()->where('site_id', $site->id)->whereNull('resolved_at')->first();
-
-        if ($site->status === SiteStatus::Down && $open === null) {
-            $last = is_array($monitor['lastIncident'] ?? null) ? $monitor['lastIncident'] : [];
-            $startedAt = isset($last['startedAt']) && is_string($last['startedAt']) ? rescue(fn () => Carbon::parse($last['startedAt']), report: false) : null;
-
-            $incident = new Incident([
-                'site_id' => $site->id,
-                'type' => IncidentType::Downtime,
-                'status' => IncidentStatus::Open,
-                'started_at' => $startedAt && $startedAt->isPast() ? $startedAt : now(),
-                'description' => 'Panne signalée par UptimeRobot'.(is_string($last['reason'] ?? null) && $last['reason'] !== '' ? ' : '.$last['reason'] : '.'),
-                'confirmed_failures' => 1,
-            ]);
-            $incident->agency_id = $site->agency_id;
-            $incident->save();
-        } elseif ($site->status === SiteStatus::Up && $open !== null && $previous !== SiteStatus::Up) {
-            $open->status = IncidentStatus::Resolved;
-            $open->resolve(now());
-        }
     }
 
     private function link(Site $site, array $monitor, bool $managed): void

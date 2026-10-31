@@ -12,6 +12,9 @@
 @section('content')
 <x-page-header title="Sites surveillés" :subtitle="$hasAnySite ? $sites->total().' site(s)'.($filtered ? ' correspondant aux filtres' : '') : null">
     @can('sites.manage')
+        @if ($hasUptimeRobotSites)
+            <form method="POST" action="{{ route('sites.sync-all') }}">@csrf<button type="submit" class="btn-secondary">Synchroniser UptimeRobot</button></form>
+        @endif
         @if ($clients->isNotEmpty())
             <a href="{{ route('sites.create') }}" class="btn-primary"><x-icon name="plus" class="h-4 w-4"/> Ajouter un site</a>
         @endif
