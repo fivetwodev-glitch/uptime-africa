@@ -43,7 +43,11 @@ class SiteRequest extends FormRequest
             'timeout_seconds' => ['required', 'integer', 'between:2,30'],
             'expected_status_codes' => ['nullable', 'array', 'max:10'],
             'expected_status_codes.*' => ['integer', 'between:100,599'],
-            'monitoring_provider' => ['required', Rule::enum(MonitoringProvider::class)],
+            // Un site existant garde son fournisseur ; un nouveau choix doit être opérationnel.
+            'monitoring_provider' => ['required', Rule::in(array_unique(array_filter([
+                ...array_map(fn (MonitoringProvider $p) => $p->value, MonitoringProvider::selectable()),
+                $this->route('site')?->monitoring_provider?->value,
+            ])))],
             'external_monitor_id' => [
                 // UptimeRobot : vide = moniteur créé automatiquement sur le compte central.
                 Rule::requiredIf(fn () => ! in_array($this->input('monitoring_provider'), [MonitoringProvider::Internal->value, MonitoringProvider::UptimeRobot->value], true)),

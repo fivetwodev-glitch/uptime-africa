@@ -341,13 +341,29 @@ class UptimeRobotIntegrationTest extends InterfaceTestCase
             self::API.'/monitors' => Http::response($this->monitor(22, 'https://interne.exemple.ci', 'STARTED'), 201),
         ]);
 
-        $this->actingAs($user)->put(route('sites.update', $site), $this->sitePayload($site->client, ['url' => 'https://nouvelle.exemple.ci', 'interval_minutes' => 10]))
+        $this->actingAs($user)->put(route('sites.update', $site), $this->sitePayload($site->client, ['url' => 'https://nouvelle.exemple.ci', 'interval_minutes' => '10', 'timeout_seconds' => '10']))
             ->assertSessionHas('status');
-        Http::assertSent(fn (Request $r) => $r->method() === 'PATCH' && $r['url'] === 'https://nouvelle.exemple.ci' && $r['interval'] === 600);
+        Http::assertSent(fn (Request $r) => $r->method() === 'PATCH' && $r['url'] === 'https://nouvelle.exemple.ci' && $r['interval'] === 600 && $r['timeout'] === 10);
         $this->assertSame('21', $site->fresh()->external_monitor_id);
 
         $other = $this->siteFor($user->agency, ['url' => 'https://interne.exemple.ci', 'monitoring_provider' => 'uptime_robot']);
         $this->actingAs($user)->post(route('sites.sync', $other))->assertSessionHas('status');
         $this->assertSame('22', $other->fresh()->external_monitor_id);
+    }
+
+    public function test_saving_an_out_of_sync_site_without_changes_pushes_its_settings_again(): void
+    {
+        // Cas réel : un PATCH a échoué, le site local a gardé la nouvelle URL ; réenregistrer doit la répercuter.
+        $user = $this->userFor();
+        $site = $this->linkedSite($user->agency, 31, 'https://corrigee.exemple.ci');
+        $site->forceFill(['sync_status' => 'failed', 'sync_error' => 'timeout must be a number'])->saveQuietly();
+        Http::fake([self::API.'/monitors/31' => Http::response($this->monitor(31, 'https://corrigee.exemple.ci'), 200)]);
+
+        $this->actingAs($user)->put(route('sites.update', $site), $this->sitePayload($site->client, [
+            'name' => $site->name, 'url' => $site->url, 'interval_minutes' => (string) $site->interval_minutes, 'timeout_seconds' => (string) $site->timeout_seconds,
+        ]))->assertSessionHas('status');
+
+        Http::assertSent(fn (Request $r) => $r->method() === 'PATCH' && $r['url'] === 'https://corrigee.exemple.ci');
+        $this->assertSame('synced', $site->fresh()->sync_status->value);
     }
 }

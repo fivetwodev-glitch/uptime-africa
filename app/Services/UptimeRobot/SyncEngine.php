@@ -139,6 +139,13 @@ class SyncEngine
                     continue;
                 }
 
+                // Le moniteur surveille une autre URL (modification non répercutée) : son statut ne vaut pas pour ce site.
+                if (is_string($monitor['url'] ?? null) && Site::hashUrl($monitor['url']) !== $site->url_hash) {
+                    $this->recordUnknown($site, $checkedAt, SyncResult::UrlMismatch, 'Le moniteur UptimeRobot surveille une autre URL : enregistrez à nouveau le site ou relancez la synchronisation.') ? $counts['unknown']++ : $counts['skipped']++;
+
+                    continue;
+                }
+
                 $outcome = $this->record($site, $monitor, $checkedAt);
                 $counts[$outcome]++;
             } catch (Throwable $e) {
@@ -230,10 +237,16 @@ class SyncEngine
     {
         $site->consecutive_failures = min(65535, $site->consecutive_failures + 1);
         $threshold = (int) config('uptime.uptimerobot.failures_before_incident', 2);
-        // Tant que la panne n'est pas confirmée, le site est « dégradé », pas « hors ligne ».
-        $site->status = $site->consecutive_failures >= $threshold ? SiteStatus::Down : SiteStatus::Degraded;
-
         $open = Incident::withoutGlobalScopes()->where('site_id', $site->id)->whereNull('resolved_at')->lockForUpdate()->first();
+
+        // Nos passages peuvent être plus fréquents que les contrôles d'UptimeRobot (un par intervalle
+        // du moniteur) : deux lectures du même contrôle ne confirment rien. La panne doit en plus
+        // durer au moins (seuil - 1) intervalles, à une minute près.
+        $minimumSeconds = ($threshold - 1) * max(1, (int) $site->interval_minutes) * 60 - 60;
+        $confirmed = $open !== null || ($site->consecutive_failures >= $threshold
+            && $this->firstFailureAt($site, $checkedAt)->diffInSeconds($checkedAt, true) >= $minimumSeconds);
+        // Tant que la panne n'est pas confirmée, le site est « dégradé », pas « hors ligne ».
+        $site->status = $confirmed ? SiteStatus::Down : SiteStatus::Degraded;
 
         if ($open !== null) {
             $open->confirmed_failures = min(65535, $site->consecutive_failures);
@@ -244,7 +257,7 @@ class SyncEngine
             return;
         }
 
-        if ($site->consecutive_failures < $threshold) {
+        if (! $confirmed) {
             return;
         }
 

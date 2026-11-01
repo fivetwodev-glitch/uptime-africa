@@ -10,6 +10,18 @@ enum MonitoringProvider: string
     case BetterStack = 'better_stack';
     case Other = 'other';
 
+    /**
+     * Fournisseurs proposés à la création d'un site : seulement ceux dont l'intégration
+     * fonctionne réellement. Le moteur interne, Better Stack et « Autre » ne contrôlent
+     * encore rien : les proposer laisserait croire qu'un site est surveillé.
+     *
+     * @return list<self>
+     */
+    public static function selectable(): array
+    {
+        return [self::UptimeRobot];
+    }
+
     public function isExternal(): bool
     {
         return $this !== self::Internal;
