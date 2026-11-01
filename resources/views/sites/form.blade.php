@@ -5,7 +5,8 @@
     $editing = $site->exists;
     $codes = old('expected_status_codes', $site->expected_status_codes);
     $codes = is_array($codes) ? implode(', ', $codes) : $codes;
-    $provider = old('monitoring_provider', $site->monitoring_provider?->value ?? 'internal');
+    $provider = old('monitoring_provider', $site->monitoring_provider?->value ?? MonitoringProvider::UptimeRobot->value);
+    $providers = collect(MonitoringProvider::selectable())->push($site->monitoring_provider)->filter()->unique(fn ($p) => $p->value);
 @endphp
 
 @section('title', $editing ? 'Modifier '.$site->name : 'Ajouter un site')
@@ -82,11 +83,11 @@
                 <div>
                     <label for="monitoring_provider" class="label">Fournisseur</label>
                     <select id="monitoring_provider" name="monitoring_provider" class="input" data-provider-select>
-                        @foreach (MonitoringProvider::cases() as $option)
+                        @foreach ($providers as $option)
                             <option value="{{ $option->value }}" @selected($provider === $option->value)>{{ $option->label() }}</option>
                         @endforeach
                     </select>
-                    <p class="hint">UptimeRobot : laissez l'identifiant vide pour créer le moniteur automatiquement. Autres fournisseurs : identifiant obligatoire.</p>
+                    <p class="hint">Les contrôles sont effectués par UptimeRobot. Laissez l'identifiant vide pour créer le moniteur automatiquement.</p>
                 </div>
                 <div data-external-field @class(['hidden' => $provider === 'internal'])>
                     <x-field name="external_monitor_id" label="Identifiant du moniteur externe" :value="$site->external_monitor_id" maxlength="100"

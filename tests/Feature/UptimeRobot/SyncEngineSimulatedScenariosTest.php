@@ -77,6 +77,41 @@ class SyncEngineSimulatedScenariosTest extends InterfaceTestCase
         return $report;
     }
 
+    public function test_simule_moniteur_sur_une_autre_url_ne_compte_ni_panne_ni_succes(): void
+    {
+        // Modification d'URL non répercutée chez UptimeRobot : le statut distant ne concerne pas ce site.
+        $site = $this->site();
+        $this->respond($this->list('DOWN', ['url' => 'https://ancienne.exemple.ci']), $this->list('DOWN', ['url' => 'https://ancienne.exemple.ci']), $this->list('DOWN', ['url' => 'https://ancienne.exemple.ci']));
+
+        $this->pass();
+        $this->pass();
+        $this->pass();
+
+        $this->assertSame(0, Incident::withoutGlobalScopes()->count());
+        $fresh = $site->fresh();
+        $this->assertSame('failed', $fresh->sync_status->value);
+        $this->assertSame(0, $fresh->consecutive_failures);
+        $this->assertSame(SyncResult::UrlMismatch, Check::withoutGlobalScopes()->latest('checked_at')->first()->sync_result);
+    }
+
+    public function test_simule_deux_lectures_du_meme_controle_ne_confirment_pas_la_panne(): void
+    {
+        // Synchronisation chaque minute, moniteur contrôlé toutes les 5 min : 2 passages rapprochés ≠ 2 contrôles.
+        $site = $this->site();
+        $this->respond($this->list('DOWN'), $this->list('DOWN'), $this->list('DOWN'));
+
+        app(SyncEngine::class)->run(force: true);
+        $this->travel(1)->minutes();
+        app(SyncEngine::class)->run(force: true);
+        $this->assertSame(0, Incident::withoutGlobalScopes()->count());
+        $this->assertSame('degraded', $site->fresh()->status->value);
+
+        $this->travel(4)->minutes();
+        app(SyncEngine::class)->run(force: true);
+        $this->assertSame(1, Incident::withoutGlobalScopes()->count());
+        $this->assertSame('down', $site->fresh()->status->value);
+    }
+
     public function test_simule_incident_ouvert_apres_deux_echecs_confirmes_puis_resolu_avec_duree(): void
     {
         $site = $this->site();

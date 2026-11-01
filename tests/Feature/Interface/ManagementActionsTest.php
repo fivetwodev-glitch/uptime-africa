@@ -8,14 +8,28 @@ use App\Models\Incident;
 use App\Models\NotificationChannel;
 use App\Models\Site;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 
 class ManagementActionsTest extends InterfaceTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // UptimeRobot simulé : aucun moniteur existant, création acceptée.
+        config(['uptime.uptimerobot.api_key' => 'cle-factice-de-test-0000']);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://api.uptimerobot.com/v3/monitors?*' => Http::response(['nextLink' => null, 'data' => []]),
+            'https://api.uptimerobot.com/v3/monitors' => Http::response(['id' => 901, 'friendlyName' => 'Boutique', 'url' => 'https://boutique.exemple.ci', 'type' => 'HTTP', 'status' => 'STARTED', 'interval' => 300], 201),
+            'https://api.uptimerobot.com/v3/monitors/*' => Http::response(['id' => 901, 'url' => 'https://boutique.exemple.ci', 'status' => 'STARTED', 'interval' => 300]),
+        ]);
+    }
+
     private function validSite(Client $client, array $overrides = []): array
     {
         return $overrides + [
             'name' => 'Boutique', 'url' => 'https://boutique.exemple.ci', 'client_id' => $client->id,
-            'interval_minutes' => 5, 'timeout_seconds' => 10, 'monitoring_provider' => 'internal',
+            'interval_minutes' => 5, 'timeout_seconds' => 10, 'monitoring_provider' => 'uptime_robot',
             'expected_status_codes' => '200, 301',
         ];
     }
@@ -65,8 +79,11 @@ class ManagementActionsTest extends InterfaceTestCase
         $this->post(route('sites.store'), $this->validSite($client))->assertSessionHasNoErrors();
         $this->post(route('sites.store'), $this->validSite($client))->assertSessionHasErrors('url');
 
-        $this->post(route('sites.store'), $this->validSite($client, ['url' => 'https://autre.ci', 'monitoring_provider' => 'better_stack']))
-            ->assertSessionHasErrors('external_monitor_id');
+        // Fournisseurs sans intégration opérationnelle : refusés (le site ne serait jamais contrôlé).
+        foreach (['internal', 'better_stack', 'other'] as $provider) {
+            $this->post(route('sites.store'), $this->validSite($client, ['url' => 'https://autre.ci', 'monitoring_provider' => $provider]))
+                ->assertSessionHasErrors('monitoring_provider');
+        }
         $this->post(route('sites.store'), $this->validSite($client, ['url' => 'https://autre.ci', 'interval_minutes' => 3]))
             ->assertSessionHasErrors('interval_minutes');
     }

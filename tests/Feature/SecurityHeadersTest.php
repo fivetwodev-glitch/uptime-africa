@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class SecurityHeadersTest extends TestCase
@@ -15,6 +16,13 @@ class SecurityHeadersTest extends TestCase
             ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
         $this->assertStringContainsString("frame-ancestors 'none'", $response->headers->get('Content-Security-Policy'));
+    }
+
+    public function test_php_version_is_not_disclosed_and_storage_is_not_served(): void
+    {
+        $this->get('/')->assertHeaderMissing('X-Powered-By');
+        $this->get('/storage/app/private/.env')->assertNotFound();
+        $this->assertFalse(Route::has('storage.local'));
     }
 
     public function test_hsts_is_not_sent_outside_production(): void

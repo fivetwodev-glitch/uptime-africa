@@ -1,5 +1,9 @@
-# Tâche cron unique à créer dans hPanel > Avancé > Tâches Cron (toutes les minutes).
-# Remplacer <utilisateur> et le chemin par ceux de votre compte Hostinger.
-# Le binaire PHP exact (ex. /usr/bin/php ou /opt/alt/php83/usr/bin/php) est indiqué dans hPanel.
+# Tâches cron à créer dans hPanel > Avancé > Tâches Cron (forfait Premium minimum : le forfait Single est limité à 2 tâches).
+# Remplacer <chemin> par le dossier du projet, ex. /home/u123456789/domains/votre-domaine.com/uptime-africa
+# Remplacer php par le binaire PHP 8.3 indiqué dans hPanel si « php -v » en SSH n'affiche pas 8.3 (chemin exact dans hPanel).
 
-* * * * * cd /home/<utilisateur>/uptime-africa && php artisan schedule:run >> /dev/null 2>&1
+# 1. Planificateur Laravel, chaque minute (synchronisation, file d'envoi, abonnements, résumés).
+* * * * * cd <chemin> && php artisan schedule:run >> /dev/null 2>&1
+
+# 2. Sauvegarde de la base, chaque nuit à 2 h 30.
+30 2 * * * cd <chemin> && bash deploy/hostinger/backup.sh >> storage/logs/backup.log 2>&1

@@ -28,6 +28,9 @@ class SecurityHeaders
         foreach ($headers as $name => $value) {
             $response->headers->set($name, $value, false);
         }
+        // Ne pas annoncer la version de PHP (expose_php n'est pas réglable en mutualisé).
+        $response->headers->remove('X-Powered-By');
+        header_remove('X-Powered-By');
 
         return $response;
     }

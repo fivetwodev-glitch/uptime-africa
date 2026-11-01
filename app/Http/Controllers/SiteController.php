@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\MonitoringProvider;
 use App\Enums\MonitoringStatus;
 use App\Enums\SiteStatus;
+use App\Enums\SyncStatus;
 use App\Http\Requests\SiteRequest;
 use App\Models\AuditLog;
 use App\Models\Client;
@@ -119,6 +120,7 @@ class SiteController extends Controller
         $monitorId = $this->pullUptimeRobotId($data);
         $before = $site->replicate();
         $wasUptimeRobot = $site->monitoring_provider === MonitoringProvider::UptimeRobot && $site->external_monitor_id !== null;
+        $outOfSync = $site->sync_status === SyncStatus::Failed;
 
         $site->fill($data);
         $isUptimeRobot = $site->monitoring_provider === MonitoringProvider::UptimeRobot;
@@ -147,7 +149,7 @@ class SiteController extends Controller
         try {
             if ($isUptimeRobot && ! $keepLink) {
                 $response = $this->linkUptimeRobot($redirect, $uptimeRobot, $site, $monitorId, 'Site mis à jour.');
-            } elseif ($keepLink && array_intersect($changes, ['name', 'url', 'interval_minutes', 'timeout_seconds'])) {
+            } elseif ($keepLink && ($outOfSync || array_intersect($changes, ['name', 'url', 'interval_minutes', 'timeout_seconds']))) {
                 $uptimeRobot->pushSettings($site);
             }
 

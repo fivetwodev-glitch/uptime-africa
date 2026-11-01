@@ -35,6 +35,9 @@ class Site extends Model
     protected function casts(): array
     {
         return [
+            // Les formulaires envoient des chaînes ; l'API UptimeRobot exige des nombres.
+            'interval_minutes' => 'integer',
+            'timeout_seconds' => 'integer',
             'status' => SiteStatus::class,
             'monitoring_status' => MonitoringStatus::class,
             'monitoring_provider' => MonitoringProvider::class,

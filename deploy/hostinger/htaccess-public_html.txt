@@ -1,0 +1,6 @@
+# Solution de repli si le lien symbolique public_html -> public est impossible.
+# Copier ce contenu dans public_html/.htaccess (projet placé dans public_html/uptime-africa, puis bloquer tout sauf public).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(.*)$ uptime-africa/public/$1 [L]
+</IfModule>
